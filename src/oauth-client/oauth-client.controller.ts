@@ -2,13 +2,13 @@ import { Controller, Post, Body, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { OAuthClientService } from './oauth-client.service';
 import { OAuthClientDto } from './dto/oauth-client.dto';
-import { AuthGuard } from '@nestjs/passport';
+import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 
 @Controller('api/v1/oauth-client')
 export class OAuthClientController {
   constructor(private readonly clientService: OAuthClientService) {}
 
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   @Post()
   async createClient(
     @Res() res: Response,
