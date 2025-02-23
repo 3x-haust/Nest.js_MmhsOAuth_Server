@@ -1,9 +1,10 @@
-import { Controller, Post, Body, Res, Req } from '@nestjs/common';
+import { Controller, Post, Body, Res, Req, UseGuards } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { SignUpDto } from 'src/user/dto/sign-up.dto';
 import { EmailService } from 'src/email/email.service';
 import { LoginDto } from 'src/user/dto/login.dto';
+import { JwtAuthGuard } from './guard/jwt-auth.guard';
 
 @Controller('api/v1/auth')
 export class AuthController {
@@ -24,14 +25,33 @@ export class AuthController {
     return res.status(response.status).json(response);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Post('logout')
+  async logout(@Req() req: Request, @Res() res: Response) {
+    const refreshToken = req.cookies?.refreshToken;
+
+    const response = await this.authService.logout(refreshToken);
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      sameSite: 'none',
+      secure: process.env.NODE_ENV === 'production',
+    });
+    return res.status(response.status).json(response);
+  }
+
   @Post('login')
   async login(@Body() loginDto: LoginDto, @Res() res: Response) {
     const response = await this.authService.login(loginDto);
+
+    if (!response.data) {
+      return res.status(response.status).json(response);
+    }
+
     const { refreshToken } = response.data;
 
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      sameSite: 'strict',
+      sameSite: 'none',
       secure: process.env.NODE_ENV === 'production',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
@@ -41,12 +61,7 @@ export class AuthController {
 
   @Post('refresh')
   async refresh(@Req() req: Request, @Res() res: Response) {
-    const refreshToken = req.cookies.refreshToken;
-    if (!refreshToken) {
-      return res
-        .status(401)
-        .json({ message: '리프레시 토큰이 존재하지 않습니다' });
-    }
+    const refreshToken = req.cookies?.refreshToken;
 
     const response = await this.authService.refresh(refreshToken);
     return res.status(response.status).json(response);

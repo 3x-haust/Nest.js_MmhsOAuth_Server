@@ -100,8 +100,23 @@ export class AuthService {
     });
   }
 
+  async logout(refreshToken: string) {
+    if (!refreshToken) {
+      return this.responseStrategy.unauthorized(
+        '리프레시 토큰이 존재하지 않습니다.',
+      );
+    }
+    return this.responseStrategy.success('로그아웃을 성공했습니다.');
+  }
+
   async refresh(refreshToken: string) {
     try {
+      if (!refreshToken) {
+        return this.responseStrategy.unauthorized(
+          '리프레시 토큰이 존재하지 않습니다.',
+        );
+      }
+
       const payload = this.jwtService.verify(refreshToken);
       const user = await this.userRepository.findOne({
         where: { id: payload.id },
