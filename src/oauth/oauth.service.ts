@@ -20,13 +20,7 @@ export class OAuthService {
     private jwtService: JwtService,
   ) {}
 
-  async generateAuthorizationCode(
-    user: User,
-    clientId: string,
-    redirectUri: string,
-    scope: string,
-    state: string,
-  ) {
+  async generateAuthorizationCode(user: User, clientId: string, state: string) {
     if (!this.clientRepository.findOne({ where: { clientId } })) {
       return this.responseStrategy.badRequest(
         '유효하지 않은 클라이언트 ID입니다',
@@ -37,13 +31,22 @@ export class OAuthService {
     const data = JSON.stringify({
       userId: user.id,
       clientId,
-      redirectUri,
-      scope,
       state,
     });
 
     await this.redisService.set(`auth_code:${code}`, data, 600);
     return code;
+  }
+
+  async validateRedirectUri(
+    clientId: string,
+    redirectUri: string,
+  ): Promise<boolean> {
+    const client = await this.clientRepository.findOne({ where: { clientId } });
+    if (!client) {
+      throw new Error('유효하지 않은 클라이언트 ID입니다');
+    }
+    return client.redirectUris.includes(redirectUri);
   }
 
   async exchangeAuthorizationCodeForToken(
@@ -104,7 +107,7 @@ export class OAuthService {
       { expiresIn: '7d' },
     );
 
-    const fields = authData.scope.split(',');
+    const fields = (await clientConfig).scope.split(',');
     const allowedFields = {};
     for (const field of fields) {
       switch (field.trim()) {

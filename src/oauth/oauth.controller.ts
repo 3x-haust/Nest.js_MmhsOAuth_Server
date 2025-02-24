@@ -31,10 +31,9 @@ export class OAuthController {
   @Get('authorize')
   async authorize(
     @Query('client_id') clientId: string,
-    @Query('redirect_uri') redirectUri: string,
     @Query('response_type') responseType: string,
-    @Query('scope') scope: string,
     @Query('state') state: string,
+    @Query('redirect_uri') redirectUri: string,
     @Req() req: RequestWithUser,
     @Res() res: Response,
   ) {
@@ -44,20 +43,29 @@ export class OAuthController {
       );
     }
 
+    const isValidRedirectUri = await this.oauthService.validateRedirectUri(
+      clientId,
+      redirectUri,
+    );
+    if (!isValidRedirectUri) {
+      const response = this.responseStrategy.badRequest(
+        '유효하지 않은 리다이렉트 URI입니다.',
+      );
+      return res.status(response.status).json(response);
+    }
+
     const user = req.user;
     const client =
       this.configService.get('CLIENT_URL') || 'https://localhost:5173';
     if (!user) {
       return res.redirect(
-        `${client}/oauth-login?redirect=${encodeURIComponent(req.originalUrl)}`,
+        `${client}/oauth-login?redirect=${encodeURIComponent(req.url)}`,
       );
     }
 
     const code = await this.oauthService.generateAuthorizationCode(
       user,
       clientId,
-      redirectUri,
-      scope,
       state,
     );
     const redirectUrl = `${redirectUri}?code=${code}&state=${state}`;
