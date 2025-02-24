@@ -18,6 +18,7 @@ import { ConfigService } from '@nestjs/config';
 
 interface RequestWithUser extends Request {
   user?: User;
+  originalUrl: string;
 }
 @Controller('api/v1/oauth')
 export class OAuthController {
@@ -59,7 +60,7 @@ export class OAuthController {
       this.configService.get('CLIENT_URL') || 'https://localhost:5173';
     if (!user) {
       return res.redirect(
-        `${client}/oauth-login?redirect=${encodeURIComponent(req.url)}`,
+        `${client}/oauth-login?redirect=${encodeURIComponent(req.originalUrl)}`,
       );
     }
 
