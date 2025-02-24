@@ -45,9 +45,11 @@ export class OAuthController {
     }
 
     const user = req.user;
+    const client =
+      this.configService.get('CLIENT_URL') || 'https://localhost:5173';
     if (!user) {
       return res.redirect(
-        `http://localhost:5173/login?redirect=${encodeURIComponent(req.originalUrl)}`,
+        `${client}/oauth-login?redirect=${encodeURIComponent(req.originalUrl)}`,
       );
     }
 
