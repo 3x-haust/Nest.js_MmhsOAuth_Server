@@ -5,6 +5,7 @@ import { OAuthClient } from './entities/oauth-client.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { ResponseStrategy } from 'src/shared/strategies/response.strategy';
 import { OAuthClientDto } from './dto/oauth-client.dto';
+import { User } from 'src/user/entities/user.entity';
 
 @Injectable()
 export class OAuthClientService {
@@ -14,7 +15,10 @@ export class OAuthClientService {
     private responseStrategy: ResponseStrategy,
   ) {}
 
-  async createClient(data: OAuthClientDto) {
+  async createClient(data: OAuthClientDto, user: User) {
+    if (!user) {
+      return this.responseStrategy.unauthorized('권한이 없습니다.');
+    }
     const client = this.clientRepository.create({
       clientId: uuidv4(),
       clientSecret: `${uuidv4()}-${uuidv4()}`,

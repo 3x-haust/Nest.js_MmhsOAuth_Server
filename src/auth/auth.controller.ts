@@ -5,6 +5,7 @@ import { SignUpDto } from 'src/user/dto/sign-up.dto';
 import { EmailService } from 'src/email/email.service';
 import { LoginDto } from 'src/user/dto/login.dto';
 import { JwtAuthGuard } from './guard/jwt-auth.guard';
+import { RequestWithUser } from 'src/oauth/oauth.controller';
 
 @Controller('api/v1/auth')
 export class AuthController {
@@ -27,10 +28,10 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Post('logout')
-  async logout(@Req() req: Request, @Res() res: Response) {
+  async logout(@Req() req: RequestWithUser, @Res() res: Response) {
     const refreshToken = req.cookies?.refreshToken;
 
-    const response = await this.authService.logout(refreshToken);
+    const response = await this.authService.logout(refreshToken, req.user);
     res.clearCookie('refreshToken', {
       httpOnly: true,
       sameSite: 'none',

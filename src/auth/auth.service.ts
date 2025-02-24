@@ -100,7 +100,11 @@ export class AuthService {
     });
   }
 
-  async logout(refreshToken: string) {
+  async logout(refreshToken: string, user: User) {
+    if (!user) {
+      return this.responseStrategy.unauthorized('권한이 없습니다.');
+    }
+
     if (!refreshToken) {
       return this.responseStrategy.unauthorized(
         '리프레시 토큰이 존재하지 않습니다.',

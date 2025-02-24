@@ -16,7 +16,7 @@ import { User } from '../user/entities/user.entity';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 import { ConfigService } from '@nestjs/config';
 
-interface RequestWithUser extends Request {
+export interface RequestWithUser extends Request {
   user?: User;
   originalUrl: string;
 }

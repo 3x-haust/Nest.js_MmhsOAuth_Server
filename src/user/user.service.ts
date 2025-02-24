@@ -12,15 +12,20 @@ export class UserService {
     private responseStrategy: ResponseStrategy,
   ) {}
 
-  async getUserById(id: number) {
-    const user = await this.userRepository.findOne({ where: { id } });
+  async getUserById(user: User) {
     if (!user) {
+      return this.responseStrategy.unauthorized('권한이 없습니다.');
+    }
+    const userData = await this.userRepository.findOne({
+      where: { id: user.id },
+    });
+    if (!userData) {
       return this.responseStrategy.notFound('사용자를 찾을 수 없습니다.');
     }
 
     return this.responseStrategy.success(
       '사용자 정보를 성공적으로 가져왔습니다.',
-      user,
+      userData,
     );
   }
 }
