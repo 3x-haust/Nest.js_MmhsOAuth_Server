@@ -1,24 +1,13 @@
-FROM node:18-alpine AS builder
-
-WORKDIR /app
-
-COPY package*.json ./
-
-RUN npm install --only=production
-
+FROM node:lts-alpine
+ENV NODE_ENV=production
+WORKDIR /usr/src/app
+COPY package.json yarn.lock* ./
+RUN yarn install --production --frozen-lockfile --silent && \
+    yarn global add @nestjs/cli && \
+    yarn add passport @nestjs/passport passport-jwt passport-local && \
+    mv node_modules ../
 COPY . .
-
-RUN npm run build
-
-FROM node:18-alpine
-
-WORKDIR /app
-
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/dist ./dist
-
-ENV PORT=2096
-
-CMD ["npm", "run start"]
-
 EXPOSE 2096
+RUN chown -R node /usr/src/app
+USER node
+CMD ["yarn", "start"]
