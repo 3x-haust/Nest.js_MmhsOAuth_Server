@@ -19,6 +19,7 @@ import { ConfigService } from '@nestjs/config';
 export interface RequestWithUser extends Request {
   user?: User;
   originalUrl: string;
+  cookies: { [key: string]: string };
 }
 @Controller('api/v1/oauth')
 export class OAuthController {
