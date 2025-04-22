@@ -20,7 +20,7 @@ import { OAuthClientModule } from './oauth-client/oauth-client.module';
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,
       entities: ['dist/**/*.entity{.ts,.js}'],
-      synchronize: true,
+      synchronize: false,
     }),
     MailerModule.forRootAsync({
       inject: [ConfigService],
