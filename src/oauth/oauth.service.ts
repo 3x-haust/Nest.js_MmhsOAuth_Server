@@ -61,7 +61,7 @@ export class OAuthService {
   ): Promise<boolean> {
     const client = await this.clientRepository.findOne({ where: { clientId } });
     if (!client) {
-      throw new Error('유효하지 않은 클라이언트 ID입니다');
+      return false;
     }
     return client.redirectUris.includes(redirectUri);
   }
