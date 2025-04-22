@@ -188,7 +188,7 @@ export class OAuthService {
     );
     const refreshToken = this.jwtService.sign(
       { id: user.id, scopes: requestedScopes, clientId },
-      { expiresIn: '7d' },
+      { expiresIn: '30d' },
     );
 
     await this.redisService.set(

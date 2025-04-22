@@ -2,7 +2,7 @@ export const SecurityConfig = {
   jwt: {
     secret: process.env.JWT_SECRET,
     accessExpiry: '15m',
-    refreshExpiry: '7d',
+    refreshExpiry: '30d',
   },
   cors: {
     allowedOrigins: process.env.CORS_ORIGINS?.split(',') || [],

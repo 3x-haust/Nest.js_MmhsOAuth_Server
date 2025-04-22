@@ -89,7 +89,7 @@ export class AuthService {
 
     const tokenPayload: any = {
       id: user.id,
-      nickname: user.nickname,
+      scopes: 'email,nickname,major,isGraduated,admission,role,generation',
     };
 
     if (scopes.length > 0) {
@@ -101,7 +101,7 @@ export class AuthService {
     });
 
     const refreshToken = this.jwtService.sign(tokenPayload, {
-      expiresIn: '7d',
+      expiresIn: '30d',
     });
 
     return this.responseStrategy.success('로그인을 성공했습니다.', {
