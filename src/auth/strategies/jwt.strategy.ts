@@ -18,11 +18,24 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: { id: number }) {
+  async validate(payload: {
+    id: number;
+    scopes?: string[];
+    clientId?: string;
+  }) {
     const user = await this.userRepository.findOne({
       where: { id: payload.id },
     });
     if (!user) throw new UnauthorizedException('사용자를 찾을 수 없습니다.');
+
+    if (payload.scopes) {
+      user['scopes'] = payload.scopes;
+    }
+
+    if (payload.clientId) {
+      user['clientId'] = payload.clientId;
+    }
+
     return user;
   }
 }

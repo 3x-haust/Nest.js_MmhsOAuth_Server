@@ -1,4 +1,12 @@
-import { Controller, Post, Body, Res, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Res,
+  Req,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { SignUpDto } from 'src/user/dto/sign-up.dto';
@@ -41,8 +49,12 @@ export class AuthController {
   }
 
   @Post('login')
-  async login(@Body() loginDto: LoginDto, @Res() res: Response) {
-    const response = await this.authService.login(loginDto);
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res() res: Response,
+    @Query('scope') scope?: string,
+  ) {
+    const response = await this.authService.login(loginDto, scope);
 
     if (!response.data) {
       return res.status(response.status).json(response);
@@ -62,8 +74,7 @@ export class AuthController {
 
   @Post('refresh')
   async refresh(@Req() req: Request, @Res() res: Response) {
-    const refreshToken = req.cookies?.refreshToken;
-
+    const refreshToken = req.body.refreshToken || req.cookies?.refreshToken;
     const response = await this.authService.refresh(refreshToken);
     return res.status(response.status).json(response);
   }

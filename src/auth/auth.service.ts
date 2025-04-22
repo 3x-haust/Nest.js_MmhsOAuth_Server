@@ -72,7 +72,7 @@ export class AuthService {
     );
   }
 
-  async login(loginDto: LoginDto) {
+  async login(loginDto: LoginDto, scope?: string) {
     const { nickname, password } = loginDto;
 
     const user = await this.userRepository.findOne({ where: { nickname } });
@@ -85,14 +85,24 @@ export class AuthService {
         '비밀번호가 일치하지 않습니다.',
       );
 
-    const accessToken = this.jwtService.sign(
-      { id: user.id, nickname: user.nickname },
-      { expiresIn: '15m' },
-    );
-    const refreshToken = this.jwtService.sign(
-      { id: user.id, nickname: user.nickname },
-      { expiresIn: '7d' },
-    );
+    const scopes = scope ? scope.split(',').filter(Boolean) : [];
+
+    const tokenPayload: any = {
+      id: user.id,
+      nickname: user.nickname,
+    };
+
+    if (scopes.length > 0) {
+      tokenPayload.scopes = scopes;
+    }
+
+    const accessToken = this.jwtService.sign(tokenPayload, {
+      expiresIn: '15m',
+    });
+
+    const refreshToken = this.jwtService.sign(tokenPayload, {
+      expiresIn: '7d',
+    });
 
     return this.responseStrategy.success('로그인을 성공했습니다.', {
       accessToken,
@@ -125,13 +135,28 @@ export class AuthService {
       const user = await this.userRepository.findOne({
         where: { id: payload.id },
       });
+
       if (!user) {
         return this.responseStrategy.notFound('사용자를 찾을 수 없습니다.');
       }
-      const newAccessToken = this.jwtService.sign(
-        { id: user.id, nickname: user.nickname },
-        { expiresIn: '15m' },
-      );
+
+      const tokenPayload: any = {
+        id: user.id,
+        nickname: user.nickname,
+      };
+
+      if (payload.scopes) {
+        tokenPayload.scopes = payload.scopes;
+      }
+
+      if (payload.clientId) {
+        tokenPayload.clientId = payload.clientId;
+      }
+
+      const newAccessToken = this.jwtService.sign(tokenPayload, {
+        expiresIn: '15m',
+      });
+
       return this.responseStrategy.success(
         '새로운 액세스 토큰 발급에 성공했습니다.',
         {

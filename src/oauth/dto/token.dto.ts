@@ -1,4 +1,4 @@
-import { IsString } from 'class-validator';
+import { IsString, IsOptional } from 'class-validator';
 
 export class TokenDto {
   @IsString()
@@ -12,4 +12,11 @@ export class TokenDto {
 
   @IsString()
   state: string;
+
+  @IsString()
+  @IsOptional()
+  redirectUri: string;
+
+  @IsString()
+  scopes: string;
 }

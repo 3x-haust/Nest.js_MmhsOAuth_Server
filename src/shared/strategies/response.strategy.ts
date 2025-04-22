@@ -6,6 +6,22 @@ export class ResponseStrategy {
     return this.createResponse(HttpStatus.OK, message, data);
   }
 
+  create(message: string, data?: any) {
+    return this.createResponse(HttpStatus.CREATED, message, data);
+  }
+
+  update(message: string, data?: any) {
+    return this.createResponse(HttpStatus.OK, message, data);
+  }
+
+  delete(message: string) {
+    return this.createResponse(HttpStatus.OK, message);
+  }
+
+  conflict(message: string) {
+    return this.createResponse(HttpStatus.CONFLICT, message);
+  }
+
   error(message: string, error: any) {
     return this.createResponse(
       HttpStatus.INTERNAL_SERVER_ERROR,

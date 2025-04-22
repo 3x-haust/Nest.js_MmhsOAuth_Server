@@ -17,12 +17,15 @@ export class OAuthClient {
   clientId: string;
 
   @Column()
+  userId: number;
+
+  @Column()
   clientSecret: string;
 
-  @Column()
+  @Column({ unique: true })
   serviceDomain: string;
 
-  @Column()
+  @Column({ unique: true })
   serviceName: string;
 
   @Column()
