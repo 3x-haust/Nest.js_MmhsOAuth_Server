@@ -3,12 +3,21 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { OAuthModule } from './oauth/oauth.module';
 import { OAuthClientModule } from './oauth-client/oauth-client.module';
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: 60,
+          limit: 3,
+        },
+      ],
+    }),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
