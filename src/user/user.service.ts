@@ -58,6 +58,7 @@ export class UserService {
       }
 
       allowedFields['id'] = userData.id;
+      allowedFields['isAdmin'] = userData.isAdmin;
 
       return this.responseStrategy.success(
         '사용자 정보를 성공적으로 가져왔습니다.',

@@ -7,6 +7,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { OAuthModule } from './oauth/oauth.module';
 import { OAuthClientModule } from './oauth-client/oauth-client.module';
+import { NoticeModule } from './notice/notice.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { OAuthClientModule } from './oauth-client/oauth-client.module';
     AuthModule,
     OAuthModule,
     OAuthClientModule,
+    NoticeModule,
   ],
   controllers: [],
   providers: [],

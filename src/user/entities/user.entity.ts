@@ -38,6 +38,9 @@ export class User {
   @Column({ nullable: true })
   isGraduated: boolean;
 
+  @Column({ default: false })
+  isAdmin: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 
