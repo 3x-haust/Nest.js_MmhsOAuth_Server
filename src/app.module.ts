@@ -8,6 +8,7 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import { OAuthModule } from './oauth/oauth.module';
 import { OAuthClientModule } from './oauth-client/oauth-client.module';
 import { NoticeModule } from './notice/notice.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { NoticeModule } from './notice/notice.module';
     OAuthModule,
     OAuthClientModule,
     NoticeModule,
+    AdminModule,
   ],
   controllers: [],
   providers: [],

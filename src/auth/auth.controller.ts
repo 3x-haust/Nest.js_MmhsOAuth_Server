@@ -40,11 +40,6 @@ export class AuthController {
     const refreshToken = req.cookies?.refreshToken;
 
     const response = await this.authService.logout(refreshToken, req.user);
-    res.clearCookie('refreshToken', {
-      httpOnly: true,
-      sameSite: 'none',
-      secure: process.env.NODE_ENV === 'production',
-    });
     return res.status(response.status).json(response);
   }
 
@@ -59,16 +54,6 @@ export class AuthController {
     if (!response.data) {
       return res.status(response.status).json(response);
     }
-
-    const { refreshToken } = response.data;
-
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      sameSite: 'none',
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
-
     return res.status(response.status).json(response);
   }
 
