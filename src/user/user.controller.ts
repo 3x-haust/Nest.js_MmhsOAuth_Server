@@ -1,10 +1,21 @@
-import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Put,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { Response } from 'express';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 import { RequestWithUser } from 'src/oauth/oauth.controller';
 import { ScopesGuard } from 'src/auth/guard/scopes.guard';
 import { RequireScopes } from 'src/auth/decorators/scopes.decorator';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Controller('api/v1/user')
 export class UserController {
@@ -82,6 +93,58 @@ export class UserController {
   ) {
     const user = req.user;
     const response = await this.userService.getUserGraduationStatus(user);
+    return res.status(response.status).json(response);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put('profile')
+  async updateProfile(
+    @Body() updateProfileDto: UpdateProfileDto,
+    @Res() res: Response,
+    @Req() req: RequestWithUser,
+  ) {
+    const user = req.user;
+    const response = await this.userService.updateProfile(
+      user,
+      updateProfileDto,
+    );
+    return res.status(response.status).json(response);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('applications')
+  async getConnectedApplications(
+    @Res() res: Response,
+    @Req() req: RequestWithUser,
+  ) {
+    const user = req.user;
+    const response = await this.userService.getConnectedApplications(user.id);
+    return res.status(response.status).json(response);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('applications/:clientId')
+  async revokeApplication(
+    @Param('clientId') clientId: string,
+    @Res() res: Response,
+    @Req() req: RequestWithUser,
+  ) {
+    const user = req.user;
+    const response = await this.userService.revokeApplication(
+      user.id,
+      clientId,
+    );
+    return res.status(response.status).json(response);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('permissions-history')
+  async getPermissionsHistory(
+    @Res() res: Response,
+    @Req() req: RequestWithUser,
+  ) {
+    const user = req.user;
+    const response = await this.userService.getPermissionsHistory(user.id);
     return res.status(response.status).json(response);
   }
 }

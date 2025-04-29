@@ -10,10 +10,11 @@ import { RedisService } from 'src/redis/redis.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { ConfigService } from '@nestjs/config';
 import { ResponseStrategy } from 'src/shared/strategies/response.strategy';
+import { OAuthConsent } from 'src/oauth/entities/oauth-consent.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, OAuthConsent]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       inject: [ConfigService],

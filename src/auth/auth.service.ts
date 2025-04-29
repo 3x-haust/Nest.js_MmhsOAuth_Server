@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Not, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { User } from 'src/user/entities/user.entity';
@@ -8,11 +8,14 @@ import { SignUpDto } from 'src/user/dto/sign-up.dto';
 import { EmailService } from 'src/email/email.service';
 import { ResponseStrategy } from 'src/shared/strategies/response.strategy';
 import { LoginDto } from 'src/user/dto/login.dto';
+import { OAuthConsent } from 'src/oauth/entities/oauth-consent.entity';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(User) private userRepository: Repository<User>,
+    @InjectRepository(OAuthConsent)
+    private oauthConsentRepository: Repository<OAuthConsent>,
     private emailService: EmailService,
     private jwtService: JwtService,
     private responseStrategy: ResponseStrategy,
@@ -135,9 +138,16 @@ export class AuthService {
       const user = await this.userRepository.findOne({
         where: { id: payload.id },
       });
+      const revokedList = await this.oauthConsentRepository.find({
+        where: { userId: payload.id, revokedAt: Not(IsNull()) },
+      });
 
       if (!user) {
         return this.responseStrategy.notFound('사용자를 찾을 수 없습니다.');
+      }
+
+      if (revokedList.length > 0) {
+        return this.responseStrategy.unauthorized('토큰이 만료되었습니다.');
       }
 
       const tokenPayload: any = {

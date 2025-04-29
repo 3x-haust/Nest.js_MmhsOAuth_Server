@@ -8,6 +8,7 @@ import { User } from 'src/user/entities/user.entity';
 import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { OAuthConsent } from './entities/oauth-consent.entity';
+import { PermissionHistory } from 'src/user/entities/permission-history.entity';
 
 @Injectable()
 export class OAuthService {
@@ -18,6 +19,8 @@ export class OAuthService {
     private readonly clientRepository: Repository<OAuthClient>,
     @InjectRepository(OAuthConsent)
     private readonly consentRepository: Repository<OAuthConsent>,
+    @InjectRepository(PermissionHistory)
+    private readonly permissionHistoryRepository: Repository<PermissionHistory>,
     private responseStrategy: ResponseStrategy,
     private redisService: RedisService,
     private jwtService: JwtService,
@@ -41,7 +44,7 @@ export class OAuthService {
       client.allowedUserType !== 'all' &&
       user.role !== client.allowedUserType
     ) {
-      return this.responseStrategy.forbidden('권한이 없습니다.');
+      return this.responseStrategy.unauthorized('권한이 없습니다.');
     }
 
     const code = uuidv4();
@@ -100,6 +103,8 @@ export class OAuthService {
 
     if (consent) {
       consent.scope = scope;
+      consent.grantedAt = new Date();
+      consent.revokedAt = null;
       await this.consentRepository.save(consent);
     } else {
       consent = this.consentRepository.create({
@@ -109,6 +114,21 @@ export class OAuthService {
         grantedAt: new Date(),
       });
       await this.consentRepository.save(consent);
+    }
+
+    const client = await this.clientRepository.findOne({ where: { clientId } });
+    if (client) {
+      const historyEntry = this.permissionHistoryRepository.create({
+        userId,
+        clientId,
+        applicationName: client.serviceName,
+        applicationDomain: client.serviceDomain,
+        permissionScopes: scope,
+        timestamp: new Date(),
+        status: 'active',
+      });
+
+      await this.permissionHistoryRepository.save(historyEntry);
     }
   }
 
@@ -160,7 +180,7 @@ export class OAuthService {
       client.allowedUserType !== 'all' &&
       user.role !== client.allowedUserType
     ) {
-      return this.responseStrategy.forbidden('권한이 없습니다.');
+      return this.responseStrategy.unauthorized('권한이 없습니다.');
     }
 
     const requestedScopes = scopes
@@ -208,7 +228,7 @@ export class OAuthService {
         clientId,
         scopes: requestedScopes,
       }),
-      7 * 24 * 60 * 60,
+      30 * 24 * 60 * 60,
     );
 
     const allowedFields = {};
@@ -241,7 +261,8 @@ export class OAuthService {
     const data = {
       user: allowedFields,
       token_type: 'Bearer',
-      expires_in: 15 * 60,
+      expires_in_accessToken: 15 * 60,
+      expires_in_refreshToken: 30 * 24 * 60 * 60,
       access_token: accessToken,
       refresh_token: refreshToken,
     };
@@ -287,5 +308,42 @@ export class OAuthService {
     }
 
     return this.responseStrategy.success('토큰이 성공적으로 무효화되었습니다.');
+  }
+
+  async revokeUserConsent(userId: number, clientId: string) {
+    const consent = await this.consentRepository.findOne({
+      where: { userId, clientId },
+    });
+
+    if (!consent) {
+      return this.responseStrategy.badRequest(
+        '연결된 어플리케이션을 찾을 수 없습니다.',
+      );
+    }
+
+    await this.consentRepository.remove(consent);
+
+    const tokens = await this.redisService.keys(`*_token:*`);
+
+    for (const tokenKey of tokens) {
+      const tokenData = await this.redisService.get(tokenKey);
+      if (tokenData) {
+        try {
+          const parsedData = JSON.parse(tokenData);
+          if (
+            parsedData.userId === userId &&
+            parsedData.clientId === clientId
+          ) {
+            await this.redisService.del(tokenKey);
+          }
+        } catch {
+          continue;
+        }
+      }
+    }
+
+    return this.responseStrategy.success(
+      '어플리케이션 연결이 성공적으로 해제되었습니다.',
+    );
   }
 }

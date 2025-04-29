@@ -10,10 +10,16 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 import { OAuthConsent } from './entities/oauth-consent.entity';
+import { PermissionHistory } from 'src/user/entities/permission-history.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([OAuthClient, User, OAuthConsent]),
+    TypeOrmModule.forFeature([
+      OAuthClient,
+      User,
+      OAuthConsent,
+      PermissionHistory,
+    ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       inject: [ConfigService],
