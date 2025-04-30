@@ -2,17 +2,20 @@
   <h1>🔐 미림마이스터고 OAuth Backend</h1>
   <p>미림마이스터고 학생들을 위한 OAuth 인증 서비스의 백엔드 API 레포지토리입니다</p>
   <p>
-    <a href="https://oauth.mmhs.kr/api">
-      <img src="https://img.shields.io/badge/API-oauth.mmhs.kr%2Fapi-5E81F4?style=flat-square" alt="API" />
-    </a>
-    <a href="https://github.com/e-mirim/mmhs_oauth_frontend">
+    <a href="https://github.com/3x-haust/React.js_MmhsOAuth_Client">
       <img src="https://img.shields.io/badge/GitHub-Frontend-FF6B6B?style=flat-square&logo=github" alt="GitHub Frontend" />
     </a>
-    <a href="https://github.com/e-mirim/mmhs_oauth_backend">
+    <a href="https://github.com/3x-haust/Nest.js_MmhsOAuth_Server">
       <img src="https://img.shields.io/badge/GitHub-Backend-6BCB77?style=flat-square&logo=github" alt="GitHub Backend" />
     </a>
-    <img src="https://img.shields.io/badge/NestJS-9.x-E0234E?style=flat-square&logo=nestjs" alt="NestJS" />
-    <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript" alt="TypeScript" />
+    <a href="https://github.com/3x-haust/Nest.js_MmhsOAuth_Example">
+      <img src="https://img.shields.io/badge/GitHub-Example-FFB833?style=flat-square&logo=github" alt="GitHub Example" />
+    </a>
+    <a href="https://github.com/3x-haust/Flutter_MmhsOAuth_Library">
+      <img src="https://img.shields.io/badge/GitHub-Library-4B32C3?style=flat-square&logo=github" alt="GitHub Library" />
+    </a>
+    <img src="https://img.shields.io/badge/NestJS-9.x-000000?style=flat-square&logo=nestjs" alt="NestJS" />
+    <img src="https://img.shields.io/badge/TypeScript-5.x-000000?style=flat-square&logo=typescript" alt="TypeScript" />
   </p>
 </div>
 
