@@ -147,4 +147,19 @@ export class UserController {
     const response = await this.userService.getPermissionsHistory(user.id);
     return res.status(response.status).json(response);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('applications/:clientId/status')
+  async checkApplicationStatus(
+    @Param('clientId') clientId: string,
+    @Res() res: Response,
+    @Req() req: RequestWithUser,
+  ) {
+    const user = req.user;
+    const response = await this.userService.checkApplicationStatus(
+      user.id,
+      clientId,
+    );
+    return res.status(response.status).json(response);
+  }
 }

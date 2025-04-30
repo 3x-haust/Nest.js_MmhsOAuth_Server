@@ -186,6 +186,71 @@ export class OAuthController {
     }
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Post('consent/approve')
+  async approveConsent(
+    @Body('client_id') clientId: string,
+    @Body('redirect_uri') redirectUri: string,
+    @Body('state') state: string,
+    @Body('approved') approved: boolean,
+    @Body('scope') scope: string,
+    @Req() req: RequestWithUser,
+    @Res() res: Response,
+  ) {
+    const user = req.user;
+    if (!user) {
+      const response =
+        this.responseStrategy.unauthorized('로그인이 필요합니다.');
+      return res.status(response.status).json(response);
+    }
+
+    const clientInfo = await this.oauthService.getClientInfo(clientId);
+    if (!clientInfo) {
+      const response = this.responseStrategy.badRequest(
+        '유효하지 않은 클라이언트 ID입니다.',
+      );
+      return res.status(response.status).json(response);
+    }
+
+    const requestedScopes = scope
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const allowedScopes = clientInfo.scope
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const invalidScopes = requestedScopes.filter(
+      (s) => !allowedScopes.includes(s),
+    );
+
+    if (invalidScopes.length > 0) {
+      const response = this.responseStrategy.badRequest(
+        `다음 스코프는 허용되지 않습니다: ${invalidScopes.join(', ')}`,
+      );
+      return res.status(response.status).json(response);
+    }
+
+    const code = await this.oauthService.generateAuthorizationCode(
+      user,
+      clientId,
+      state,
+    );
+
+    if (typeof code === 'string') {
+      const redirectUrl = `${redirectUri}?code=${code}&state=${state}`;
+      const response = this.responseStrategy.success(
+        '사용자 승인이 완료되었습니다.',
+        { url: redirectUrl },
+      );
+
+      return res.status(response.status).json(response);
+    } else {
+      return res.status(code.status).json(code);
+    }
+  }
+
   @Post('token')
   async token(@Body() tokenDto: TokenDto, @Res() res: Response) {
     const { code, clientId, clientSecret, state, redirectUri, scopes } =

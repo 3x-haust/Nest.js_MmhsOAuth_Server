@@ -410,4 +410,27 @@ export class UserService {
       permissionsHistory,
     );
   }
+
+  async checkApplicationStatus(userId: number, clientId: string) {
+    const history = await this.permissionHistoryRepository.findOne({
+      where: {
+        userId: userId,
+        clientId,
+      },
+      order: {
+        timestamp: 'DESC',
+      },
+    });
+
+    if (!history) {
+      return this.responseStrategy.notFound(
+        '해당 애플리케이션 연결을 찾을 수 없습니다.',
+      );
+    }
+
+    return this.responseStrategy.success(
+      '애플리케이션 연결 상태를 성공적으로 가져왔습니다.',
+      { status: history.status },
+    );
+  }
 }
