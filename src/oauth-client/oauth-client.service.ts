@@ -50,12 +50,9 @@ export class OAuthClientService {
     );
   }
 
-  async getClientById(id: string, user: User) {
-    if (!user) {
-      return this.responseStrategy.unauthorized('권한이 없습니다.');
-    }
+  async getClientById(id: string) {
     const client = await this.clientRepository.findOne({
-      where: { userId: user.id, clientId: id },
+      where: { clientId: id },
     });
     if (!client) {
       return this.responseStrategy.notFound('클라이언트를 찾을 수 없습니다');

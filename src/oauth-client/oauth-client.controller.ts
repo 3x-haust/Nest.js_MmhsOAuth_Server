@@ -47,7 +47,7 @@ export class OAuthClientController {
     @Req() req: RequestWithUser,
     @Body('id') id: string,
   ) {
-    const response = await this.clientService.getClientById(id, req.user);
+    const response = await this.clientService.getClientById(id);
     return res.status(response.status).json(response);
   }
 

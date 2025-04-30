@@ -56,7 +56,7 @@ export class EmailService {
 
     await this.redisService.set(`password-reset-token:${token}`, email, 86400);
 
-    const resetLink = `${process.env.FRONTEND_URL || 'https://localhost:5173'}/reset-password/${token}`;
+    const resetLink = `${process.env.CLIENT_URL || 'https://localhost:5173'}/reset-password/${token}`;
 
     const html = await this.renderTemplate('password-reset-link', {
       resetLink,
