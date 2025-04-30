@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>미림마이스터고 OAuth 인증 코드</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+    
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background-color: #f4f4f8;
+      margin: 0;
+      padding: 0;
+    }
+    
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background-color: #ffffff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    
+    .header {
+      background-color: #5E81F4;
+      padding: 24px;
+      text-align: center;
+      color: white;
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 700;
+    }
+    
+    .content {
+      padding: 32px 24px;
+    }
+    
+    .code-box {
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      margin: 24px 0;
+      font-size: 32px;
+      letter-spacing: 6px;
+      font-weight: 700;
+      color: #333;
+      border: 1px dashed #ccc;
+    }
+    
+    p {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #444;
+      margin-bottom: 16px;
+    }
+    
+    .footer {
+      background-color: #f4f4f8;
+      padding: 16px 24px;
+      text-align: center;
+      color: #777;
+      font-size: 14px;
+    }
+    
+    .logo {
+      margin-bottom: 16px;
+    }
+    
+    .expiry {
+      color: #e74c3c;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>미림마이스터고 OAuth 인증 코드</h1>
+    </div>
+    
+    <div class="content">
+      <p>안녕하세요,</p>
+      <p>미림마이스터고 계정 인증을 위한 인증 코드입니다.</p>
+      
+      <div class="code-box">
+        {{code}}
+      </div>
+      
+      <p class="expiry">이 인증 코드는 5분 후에 만료됩니다.</p>
+      <p>인증 코드는 타인에게 공유하지 마세요. 미림마이스터고 OAuth 서비스 팀은 어떠한 경우에도 이 코드를 물어보지 않습니다.</p>
+    </div>
+    
+    <div class="footer">
+      <p>© 2025 Hyphen | 미림마이스터고 OAuth 서비스. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>

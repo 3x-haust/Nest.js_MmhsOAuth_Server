@@ -9,6 +9,9 @@ import { EmailService } from 'src/email/email.service';
 import { ResponseStrategy } from 'src/shared/strategies/response.strategy';
 import { LoginDto } from 'src/user/dto/login.dto';
 import { OAuthConsent } from 'src/oauth/entities/oauth-consent.entity';
+import { RequestPasswordResetDto } from 'src/user/dto/request-password-reset.dto';
+import { FindNicknameDto } from 'src/user/dto/find-nickname.dto';
+import { ResetPasswordTokenDto } from 'src/user/dto/reset-password-token.dto';
 
 @Injectable()
 export class AuthService {
@@ -178,5 +181,75 @@ export class AuthService {
         '유효하지 않은 리프레시 토큰입니다.',
       );
     }
+  }
+
+  async requestPasswordReset(requestPasswordResetDto: RequestPasswordResetDto) {
+    const { email } = requestPasswordResetDto;
+
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (!user) {
+      return this.responseStrategy.notFound(
+        '등록된 이메일을 찾을 수 없습니다.',
+      );
+    }
+
+    const result = await this.emailService.sendPasswordResetLink(email);
+    return result;
+  }
+
+  async resetPasswordWithToken(resetPasswordTokenDto: ResetPasswordTokenDto) {
+    const { token, newPassword } = resetPasswordTokenDto;
+
+    const email = await this.emailService.verifyPasswordResetToken(token);
+
+    if (!email) {
+      return this.responseStrategy.badRequest(
+        '유효하지 않거나 만료된 토큰입니다.',
+      );
+    }
+
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (!user) {
+      return this.responseStrategy.notFound('사용자를 찾을 수 없습니다.');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+
+    await this.userRepository.save(user);
+
+    await this.emailService.invalidatePasswordResetToken(token);
+
+    return this.responseStrategy.success(
+      '비밀번호가 성공적으로 재설정되었습니다.',
+    );
+  }
+
+  async verifyPasswordResetToken(token: string) {
+    const email = await this.emailService.verifyPasswordResetToken(token);
+    if (!email) {
+      return this.responseStrategy.badRequest(
+        '유효하지 않거나 만료된 토큰입니다.',
+      );
+    }
+
+    return this.responseStrategy.success('유효한 토큰입니다.');
+  }
+
+  async findNickname(findNicknameDto: FindNicknameDto) {
+    const { email } = findNicknameDto;
+
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (!user) {
+      return this.responseStrategy.notFound(
+        '등록된 이메일을 찾을 수 없습니다.',
+      );
+    }
+
+    const result = await this.emailService.sendNicknameRecoveryEmail(
+      email,
+      user.nickname,
+    );
+    return result;
   }
 }
