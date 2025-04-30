@@ -90,7 +90,7 @@ export class OAuthClientService {
       return this.responseStrategy.unauthorized('권한이 없습니다.');
     }
     const client = await this.clientRepository.findOne({
-      where: { id: user.id },
+      where: { clientId: id },
     });
     if (!client) {
       return this.responseStrategy.notFound('클라이언트를 찾을 수 없습니다');
