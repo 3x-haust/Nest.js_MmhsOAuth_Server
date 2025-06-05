@@ -44,9 +44,12 @@ export class AuthService {
             : 'web'
         : 'software';
 
-    const admission = Number('20' + studentNumber.slice(1, 3));
-    const generation = admission - 2009;
-    const isGraduated = new Date().getFullYear() - admission >= 3;
+    const admission =
+      role === 'student' ? Number('20' + studentNumber.slice(1, 3)) : undefined;
+    const generation = admission ? admission - 2009 : undefined;
+    const isGraduated = admission
+      ? new Date().getFullYear() - admission >= 3
+      : undefined;
 
     if (await this.userRepository.findOne({ where: { email } })) {
       return this.responseStrategy.badRequest('이메일이 이미 존재합니다.');
