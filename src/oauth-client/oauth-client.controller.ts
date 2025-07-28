@@ -49,6 +49,16 @@ export class OAuthClientController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('client/:clientId')
+  async getClientByClientId(
+    @Res() res: Response,
+    @Param('clientId') clientId: string,
+  ) {
+    const response = await this.clientService.getClientByClientId(clientId);
+    return res.status(response.status).json(response);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Put(':id')
   async updateClient(
     @Res() res: Response,

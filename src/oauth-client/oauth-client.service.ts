@@ -63,6 +63,19 @@ export class OAuthClientService {
     );
   }
 
+  async getClientByClientId(clientId: string) {
+    const client = await this.clientRepository.findOne({
+      where: { clientId: clientId },
+    });
+    if (!client) {
+      return this.responseStrategy.notFound('클라이언트를 찾을 수 없습니다');
+    }
+    return this.responseStrategy.success(
+      '클라이언트 조회에 성공했습니다',
+      client,
+    );
+  }
+
   async updateClient(id: number, data: OAuthClientDto, user: User) {
     if (!user) {
       return this.responseStrategy.unauthorized('권한이 없습니다.');
