@@ -50,9 +50,9 @@ export class OAuthClientService {
     );
   }
 
-  async getClientById(id: string) {
+  async getClientById(id: number) {
     const client = await this.clientRepository.findOne({
-      where: { clientId: id },
+      where: { id: id },
     });
     if (!client) {
       return this.responseStrategy.notFound('클라이언트를 찾을 수 없습니다');
@@ -85,12 +85,12 @@ export class OAuthClientService {
     }
   }
 
-  async deleteClient(id: string, user: User) {
+  async deleteClient(id: number, user: User) {
     if (!user) {
       return this.responseStrategy.unauthorized('권한이 없습니다.');
     }
     const client = await this.clientRepository.findOne({
-      where: { clientId: id },
+      where: { id: id },
     });
     if (!client) {
       return this.responseStrategy.notFound('클라이언트를 찾을 수 없습니다');

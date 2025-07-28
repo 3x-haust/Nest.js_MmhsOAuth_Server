@@ -42,11 +42,7 @@ export class OAuthClientController {
 
   @UseGuards(JwtAuthGuard)
   @Get(':id')
-  async getClientById(
-    @Res() res: Response,
-    @Req() req: RequestWithUser,
-    @Body('id') id: string,
-  ) {
+  async getClientById(@Res() res: Response, @Body('id') id: number) {
     const response = await this.clientService.getClientById(id);
     return res.status(response.status).json(response);
   }
@@ -72,7 +68,7 @@ export class OAuthClientController {
   async deleteClient(
     @Res() res: Response,
     @Req() req: RequestWithUser,
-    @Body('id') id: string,
+    @Body('id') id: number,
   ) {
     const response = await this.clientService.deleteClient(id, req.user);
     return res.status(response.status).json(response);
