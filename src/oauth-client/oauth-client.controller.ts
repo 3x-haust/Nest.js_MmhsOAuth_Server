@@ -8,6 +8,7 @@ import {
   Get,
   Put,
   Delete,
+  Param,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { OAuthClientService } from './oauth-client.service';
@@ -42,7 +43,7 @@ export class OAuthClientController {
 
   @UseGuards(JwtAuthGuard)
   @Get(':id')
-  async getClientById(@Res() res: Response, @Body('id') id: number) {
+  async getClientById(@Res() res: Response, @Param('id') id: number) {
     const response = await this.clientService.getClientById(id);
     return res.status(response.status).json(response);
   }
@@ -52,7 +53,7 @@ export class OAuthClientController {
   async updateClient(
     @Res() res: Response,
     @Req() req: RequestWithUser,
-    @Body('id') id: number,
+    @Param('id') id: number,
     @Body() oauthClientDto: OAuthClientDto,
   ) {
     const response = await this.clientService.updateClient(
@@ -68,7 +69,7 @@ export class OAuthClientController {
   async deleteClient(
     @Res() res: Response,
     @Req() req: RequestWithUser,
-    @Body('id') id: number,
+    @Param('id') id: number,
   ) {
     const response = await this.clientService.deleteClient(id, req.user);
     return res.status(response.status).json(response);
