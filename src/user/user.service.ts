@@ -10,6 +10,12 @@ import { OAuthConsent } from 'src/oauth/entities/oauth-consent.entity';
 import { OAuthClient } from 'src/oauth-client/entities/oauth-client.entity';
 import { RedisService } from 'src/redis/redis.service';
 import { PermissionHistory } from './entities/permission-history.entity';
+import { unlink } from 'fs/promises';
+import { join } from 'path';
+import {
+  getAvatarDirectory,
+  getAvatarPublicPrefix,
+} from 'src/config/upload.config';
 
 @Injectable()
 export class UserService {
@@ -72,6 +78,7 @@ export class UserService {
 
       allowedFields['id'] = userData.id;
       allowedFields['isAdmin'] = userData.isAdmin;
+      allowedFields['profileImageUrl'] = userData.profileImageUrl;
 
       return this.responseStrategy.success(
         '사용자 정보를 성공적으로 가져왔습니다.',
@@ -298,8 +305,92 @@ export class UserService {
         id: updatedUser.id,
         email: updatedUser.email,
         nickname: updatedUser.nickname,
+        profileImageUrl: updatedUser.profileImageUrl,
         updatedAt: updatedUser.updatedAt,
       },
+    );
+  }
+
+  private async removeProfileImageFile(profileImageUrl?: string | null) {
+    if (!profileImageUrl) {
+      return;
+    }
+
+    const normalizedUrl = profileImageUrl.replace(/\\/g, '/');
+    const avatarPrefix = `${getAvatarPublicPrefix()}/`;
+    const fallbackPrefix = '/uploads/avatars/';
+    const canDeleteFromPrefix =
+      normalizedUrl.startsWith(avatarPrefix) ||
+      normalizedUrl.startsWith(fallbackPrefix);
+
+    if (!canDeleteFromPrefix) {
+      return;
+    }
+
+    const filename = normalizedUrl.split('/').pop();
+    if (!filename) {
+      return;
+    }
+
+    const filePath = join(getAvatarDirectory(), filename);
+    await unlink(filePath).catch(() => undefined);
+  }
+
+  async updateProfileImage(user: ExtendedUser, profileImageUrl: string) {
+    if (!user) {
+      return this.responseStrategy.unauthorized('권한이 없습니다.');
+    }
+
+    const userData = await this.userRepository.findOne({
+      where: { id: user.id },
+    });
+
+    if (!userData) {
+      return this.responseStrategy.notFound('사용자를 찾을 수 없습니다.');
+    }
+
+    await this.removeProfileImageFile(userData.profileImageUrl);
+    await this.userRepository.update(user.id, { profileImageUrl });
+
+    const updatedUser = await this.userRepository.findOne({
+      where: { id: user.id },
+    });
+
+    return this.responseStrategy.success(
+      '프로필 이미지가 성공적으로 업데이트되었습니다.',
+      {
+        id: updatedUser.id,
+        profileImageUrl: updatedUser.profileImageUrl,
+        updatedAt: updatedUser.updatedAt,
+      },
+    );
+  }
+
+  async deleteProfileImage(user: ExtendedUser) {
+    if (!user) {
+      return this.responseStrategy.unauthorized('권한이 없습니다.');
+    }
+
+    const userData = await this.userRepository.findOne({
+      where: { id: user.id },
+    });
+
+    if (!userData) {
+      return this.responseStrategy.notFound('사용자를 찾을 수 없습니다.');
+    }
+
+    if (!userData.profileImageUrl) {
+      return this.responseStrategy.badRequest(
+        '삭제할 프로필 이미지가 없습니다.',
+      );
+    }
+
+    await this.removeProfileImageFile(userData.profileImageUrl);
+    await this.userRepository.update(user.id, { profileImageUrl: null });
+
+    return this.responseStrategy.success(
+      '프로필 이미지가 성공적으로 삭제되었습니다.',
+      { id: user.id, profileImageUrl: null },
     );
   }
 

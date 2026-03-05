@@ -3,11 +3,24 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { SecurityConfig } from './config/security.config';
+import {
+  getAvatarDirectory,
+  getUploadsDirectory,
+  getUploadsPublicPath,
+} from './config/upload.config';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
+import * as express from 'express';
+import { mkdirSync } from 'fs';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const uploadsDirectory = getUploadsDirectory();
+  const avatarsDirectory = getAvatarDirectory();
+  const uploadsPublicPath = getUploadsPublicPath();
+
+  mkdirSync(avatarsDirectory, { recursive: true });
+  app.use(uploadsPublicPath, express.static(uploadsDirectory));
 
   app.use(
     rateLimit({

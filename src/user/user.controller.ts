@@ -1,21 +1,82 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
   Param,
+  Post,
   Put,
   Req,
   Res,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { Response } from 'express';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Request, Response } from 'express';
+import { mkdirSync } from 'fs';
+import { unlink } from 'fs/promises';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { randomUUID } from 'crypto';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 import { RequestWithUser } from 'src/oauth/oauth.controller';
 import { ScopesGuard } from 'src/auth/guard/scopes.guard';
 import { RequireScopes } from 'src/auth/decorators/scopes.decorator';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import {
+  getAvatarDirectory,
+  getAvatarPublicPrefix,
+} from 'src/config/upload.config';
+
+const avatarMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+const getAvatarExtension = (mimeType: string, originalName: string): string => {
+  if (mimeType === 'image/webp') {
+    return '.webp';
+  }
+  if (mimeType === 'image/png') {
+    return '.png';
+  }
+  if (mimeType === 'image/jpeg') {
+    return '.jpg';
+  }
+
+  const extension = extname(originalName).toLowerCase();
+  return extension || '.img';
+};
+
+const avatarStorage = diskStorage({
+  destination: (_req, _file, callback) => {
+    const avatarUploadDirectory = getAvatarDirectory();
+    mkdirSync(avatarUploadDirectory, { recursive: true });
+    callback(null, avatarUploadDirectory);
+  },
+  filename: (_req, file, callback) => {
+    const extension = getAvatarExtension(file.mimetype, file.originalname);
+    callback(null, `${Date.now()}-${randomUUID()}${extension}`);
+  },
+});
+
+const avatarFileFilter = (
+  _req: Request,
+  file: { mimetype: string },
+  callback: (error: Error | null, acceptFile: boolean) => void,
+) => {
+  if (!avatarMimeTypes.has(file.mimetype)) {
+    callback(
+      new BadRequestException(
+        '지원하지 않는 파일 형식입니다. JPG, PNG, WEBP만 업로드할 수 있습니다.',
+      ),
+      false,
+    );
+    return;
+  }
+
+  callback(null, true);
+};
 
 @Controller('api/v1/user')
 export class UserController {
@@ -108,6 +169,48 @@ export class UserController {
       user,
       updateProfileDto,
     );
+    return res.status(response.status).json(response);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('profile-image')
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: avatarStorage,
+      fileFilter: avatarFileFilter,
+      limits: { fileSize: 350 * 1024 },
+    }),
+  )
+  async uploadProfileImage(
+    @UploadedFile() file: { filename: string; path: string } | undefined,
+    @Res() res: Response,
+    @Req() req: RequestWithUser,
+  ) {
+    if (!file) {
+      return res
+        .status(400)
+        .json({ status: 400, message: '프로필 이미지를 업로드해주세요.' });
+    }
+
+    const user = req.user;
+    const profileImageUrl = `${getAvatarPublicPrefix()}/${file.filename}`;
+    const response = await this.userService.updateProfileImage(
+      user,
+      profileImageUrl,
+    );
+
+    if (response.status >= 400) {
+      await unlink(file.path).catch(() => undefined);
+    }
+
+    return res.status(response.status).json(response);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('profile-image')
+  async deleteProfileImage(@Res() res: Response, @Req() req: RequestWithUser) {
+    const user = req.user;
+    const response = await this.userService.deleteProfileImage(user);
     return res.status(response.status).json(response);
   }
 

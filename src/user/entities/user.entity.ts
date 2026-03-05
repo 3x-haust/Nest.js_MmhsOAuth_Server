@@ -41,6 +41,9 @@ export class User {
   @Column({ default: false })
   isAdmin: boolean;
 
+  @Column({ nullable: true })
+  profileImageUrl: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

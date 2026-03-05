@@ -9,6 +9,7 @@ import { OAuthModule } from './oauth/oauth.module';
 import { OAuthClientModule } from './oauth-client/oauth-client.module';
 import { NoticeModule } from './notice/notice.module';
 import { AdminModule } from './admin/admin.module';
+import { DeveloperDocModule } from './developer-doc/developer-doc.module';
 
 @Module({
   imports: [
@@ -31,7 +32,9 @@ import { AdminModule } from './admin/admin.module';
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,
       entities: ['dist/**/*.entity{.ts,.js}'],
-      synchronize: false,
+      synchronize: process.env.DB_SYNCHRONIZE === 'true',
+      migrations: ['dist/migrations/*{.ts,.js}'],
+      migrationsRun: true,
     }),
     MailerModule.forRootAsync({
       inject: [ConfigService],
@@ -53,6 +56,7 @@ import { AdminModule } from './admin/admin.module';
     OAuthClientModule,
     NoticeModule,
     AdminModule,
+    DeveloperDocModule,
   ],
   controllers: [],
   providers: [],
