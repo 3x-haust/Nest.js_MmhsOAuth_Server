@@ -579,6 +579,11 @@ export class UserService {
         email: true,
         profileImageUrl: true,
         isAdmin: true,
+        role: true,
+        major: true,
+        admission: true,
+        generation: true,
+        isGraduated: true,
       },
     });
 
@@ -598,6 +603,11 @@ export class UserService {
           email: targetUser.email,
           profileImageUrl: targetUser.profileImageUrl,
           isAdmin: targetUser.isAdmin,
+          role: targetUser.role,
+          major: targetUser.major,
+          admission: targetUser.admission,
+          generation: targetUser.generation,
+          isGraduated: targetUser.isGraduated,
           searchedAt: history.searchedAt,
         };
       })
