@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, ILike } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { User } from 'src/user/entities/user.entity';
 import { ResponseStrategy } from 'src/shared/strategies/response.strategy';
 import { ExtendedUser } from 'src/oauth/oauth.controller';
@@ -16,6 +16,7 @@ import {
   getAvatarDirectory,
   getAvatarPublicPrefix,
 } from 'src/config/upload.config';
+import { UserSearchService } from './user-search.service';
 
 @Injectable()
 export class UserService {
@@ -28,6 +29,7 @@ export class UserService {
     private readonly oauthClientRepository: Repository<OAuthClient>,
     @InjectRepository(PermissionHistory)
     private readonly permissionHistoryRepository: Repository<PermissionHistory>,
+    private readonly userSearchService: UserSearchService,
     private readonly redisService: RedisService,
     private responseStrategy: ResponseStrategy,
   ) {}
@@ -531,28 +533,7 @@ export class UserService {
       return this.responseStrategy.badRequest('검색어를 입력해주세요.');
     }
 
-    const users = await this.userRepository.find({
-      where: [
-        { nickname: ILike(`%${keyword}%`) },
-        { email: ILike(`%${keyword}%`) },
-      ],
-      select: {
-        id: true,
-        email: true,
-        nickname: true,
-        profileImageUrl: true,
-        role: true,
-        major: true,
-        admission: true,
-        generation: true,
-        isGraduated: true,
-        isAdmin: true,
-      },
-      order: {
-        nickname: 'ASC',
-      },
-      take: 20,
-    });
+    const users = await this.userSearchService.searchUsers(keyword, 20);
 
     return this.responseStrategy.success(
       '유저 검색 결과를 성공적으로 가져왔습니다.',

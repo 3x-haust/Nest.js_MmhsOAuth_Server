@@ -8,6 +8,7 @@ import { OAuthConsent } from 'src/oauth/entities/oauth-consent.entity';
 import { OAuthClient } from 'src/oauth-client/entities/oauth-client.entity';
 import { RedisService } from 'src/redis/redis.service';
 import { PermissionHistory } from './entities/permission-history.entity';
+import { UserSearchService } from './user-search.service';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { PermissionHistory } from './entities/permission-history.entity';
     ]),
   ],
   controllers: [UserController],
-  providers: [UserService, ResponseStrategy, RedisService],
-  exports: [UserService, TypeOrmModule, RedisService],
+  providers: [UserService, UserSearchService, ResponseStrategy, RedisService],
+  exports: [UserService, UserSearchService, TypeOrmModule, RedisService],
 })
 export class UserModule {}
