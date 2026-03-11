@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, ILike } from 'typeorm';
 import { User } from 'src/user/entities/user.entity';
 import { ResponseStrategy } from 'src/shared/strategies/response.strategy';
 import { ExtendedUser } from 'src/oauth/oauth.controller';
@@ -522,6 +522,41 @@ export class UserService {
     return this.responseStrategy.success(
       '애플리케이션 연결 상태를 성공적으로 가져왔습니다.',
       { status: history.status },
+    );
+  }
+
+  async searchUsers(query: string) {
+    const keyword = query.trim();
+    if (!keyword) {
+      return this.responseStrategy.badRequest('검색어를 입력해주세요.');
+    }
+
+    const users = await this.userRepository.find({
+      where: [
+        { nickname: ILike(`%${keyword}%`) },
+        { email: ILike(`%${keyword}%`) },
+      ],
+      select: {
+        id: true,
+        email: true,
+        nickname: true,
+        profileImageUrl: true,
+        role: true,
+        major: true,
+        admission: true,
+        generation: true,
+        isGraduated: true,
+        isAdmin: true,
+      },
+      order: {
+        nickname: 'ASC',
+      },
+      take: 20,
+    });
+
+    return this.responseStrategy.success(
+      '유저 검색 결과를 성공적으로 가져왔습니다.',
+      users,
     );
   }
 }

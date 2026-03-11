@@ -7,6 +7,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   Req,
   Res,
   UploadedFile,
@@ -211,6 +212,20 @@ export class UserController {
   async deleteProfileImage(@Res() res: Response, @Req() req: RequestWithUser) {
     const user = req.user;
     const response = await this.userService.deleteProfileImage(user);
+    return res.status(response.status).json(response);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('search')
+  async searchUsers(
+    @Query('query') query: string,
+    @Query('q') q: string,
+    @Query('nickname') nickname: string,
+    @Query('email') email: string,
+    @Res() res: Response,
+  ) {
+    const keyword = (query ?? q ?? nickname ?? email ?? '').trim();
+    const response = await this.userService.searchUsers(keyword);
     return res.status(response.status).json(response);
   }
 
