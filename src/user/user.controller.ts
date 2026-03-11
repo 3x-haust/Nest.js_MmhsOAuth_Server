@@ -230,6 +230,52 @@ export class UserController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('search/history')
+  async getSearchHistory(@Res() res: Response, @Req() req: RequestWithUser) {
+    const user = req.user;
+    const response = await this.userService.getSearchHistory(user);
+    return res.status(response.status).json(response);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('search/history')
+  async saveSearchHistory(
+    @Body('targetUserId') targetUserId: number,
+    @Res() res: Response,
+    @Req() req: RequestWithUser,
+  ) {
+    const user = req.user;
+    const response = await this.userService.saveSearchHistory(
+      user,
+      Number(targetUserId),
+    );
+    return res.status(response.status).json(response);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('search/history')
+  async clearSearchHistory(@Res() res: Response, @Req() req: RequestWithUser) {
+    const user = req.user;
+    const response = await this.userService.clearSearchHistory(user);
+    return res.status(response.status).json(response);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('search/history/:targetUserId')
+  async removeSearchHistoryItem(
+    @Param('targetUserId') targetUserId: string,
+    @Res() res: Response,
+    @Req() req: RequestWithUser,
+  ) {
+    const user = req.user;
+    const response = await this.userService.removeSearchHistoryItem(
+      user,
+      Number(targetUserId),
+    );
+    return res.status(response.status).json(response);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('applications')
   async getConnectedApplications(
     @Res() res: Response,

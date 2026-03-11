@@ -17,9 +17,12 @@ import {
   getAvatarPublicPrefix,
 } from 'src/config/upload.config';
 import { UserSearchService } from './user-search.service';
+import { UserSearchHistory } from './entities/user-search-history.entity';
 
 @Injectable()
 export class UserService {
+  private static readonly MAX_RECENT_SEARCHES = 20;
+
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
@@ -29,6 +32,8 @@ export class UserService {
     private readonly oauthClientRepository: Repository<OAuthClient>,
     @InjectRepository(PermissionHistory)
     private readonly permissionHistoryRepository: Repository<PermissionHistory>,
+    @InjectRepository(UserSearchHistory)
+    private readonly userSearchHistoryRepository: Repository<UserSearchHistory>,
     private readonly userSearchService: UserSearchService,
     private readonly redisService: RedisService,
     private responseStrategy: ResponseStrategy,
@@ -539,5 +544,179 @@ export class UserService {
       '유저 검색 결과를 성공적으로 가져왔습니다.',
       users,
     );
+  }
+
+  async getSearchHistory(user: ExtendedUser) {
+    if (!user) {
+      return this.responseStrategy.unauthorized('권한이 없습니다.');
+    }
+
+    const histories = await this.userSearchHistoryRepository.find({
+      where: { userId: user.id },
+      select: {
+        targetUserId: true,
+        searchedAt: true,
+      },
+      order: {
+        searchedAt: 'DESC',
+      },
+      take: UserService.MAX_RECENT_SEARCHES,
+    });
+
+    if (histories.length === 0) {
+      return this.responseStrategy.success(
+        '최근 검색 유저를 성공적으로 가져왔습니다.',
+        [],
+      );
+    }
+
+    const targetUserIds = histories.map((history) => history.targetUserId);
+    const targetUsers = await this.userRepository.find({
+      where: { id: In(targetUserIds) },
+      select: {
+        id: true,
+        nickname: true,
+        email: true,
+        profileImageUrl: true,
+        isAdmin: true,
+      },
+    });
+
+    const targetUserMap = new Map(
+      targetUsers.map((targetUser) => [targetUser.id, targetUser]),
+    );
+    const recentUsers = histories
+      .map((history) => {
+        const targetUser = targetUserMap.get(history.targetUserId);
+        if (!targetUser) {
+          return null;
+        }
+
+        return {
+          targetUserId: targetUser.id,
+          nickname: targetUser.nickname,
+          email: targetUser.email,
+          profileImageUrl: targetUser.profileImageUrl,
+          isAdmin: targetUser.isAdmin,
+          searchedAt: history.searchedAt,
+        };
+      })
+      .filter(
+        (history): history is NonNullable<typeof history> => history !== null,
+      );
+
+    return this.responseStrategy.success(
+      '최근 검색 유저를 성공적으로 가져왔습니다.',
+      recentUsers,
+    );
+  }
+
+  async saveSearchHistory(user: ExtendedUser, targetUserId: number) {
+    if (!user) {
+      return this.responseStrategy.unauthorized('권한이 없습니다.');
+    }
+
+    if (!Number.isInteger(targetUserId) || targetUserId <= 0) {
+      return this.responseStrategy.badRequest(
+        '저장할 검색 유저 ID가 올바르지 않습니다.',
+      );
+    }
+
+    const targetUser = await this.userRepository.findOne({
+      where: { id: targetUserId },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!targetUser) {
+      return this.responseStrategy.notFound('검색한 유저를 찾을 수 없습니다.');
+    }
+
+    const existingHistory = await this.userSearchHistoryRepository.findOne({
+      where: {
+        userId: user.id,
+        targetUserId,
+      },
+    });
+
+    if (existingHistory) {
+      existingHistory.searchedAt = new Date();
+      await this.userSearchHistoryRepository.save(existingHistory);
+    } else {
+      await this.userSearchHistoryRepository.save(
+        this.userSearchHistoryRepository.create({
+          userId: user.id,
+          targetUserId,
+          searchedAt: new Date(),
+        }),
+      );
+    }
+
+    await this.trimSearchHistory(user.id);
+
+    return this.getSearchHistory(user);
+  }
+
+  async clearSearchHistory(user: ExtendedUser) {
+    if (!user) {
+      return this.responseStrategy.unauthorized('권한이 없습니다.');
+    }
+
+    await this.userSearchHistoryRepository.delete({ userId: user.id });
+
+    return this.responseStrategy.success(
+      '최근 검색 기록을 성공적으로 삭제했습니다.',
+      [],
+    );
+  }
+
+  async removeSearchHistoryItem(user: ExtendedUser, targetUserId: number) {
+    if (!user) {
+      return this.responseStrategy.unauthorized('권한이 없습니다.');
+    }
+
+    if (!Number.isInteger(targetUserId) || targetUserId <= 0) {
+      return this.responseStrategy.badRequest(
+        '삭제할 검색 유저 ID가 올바르지 않습니다.',
+      );
+    }
+
+    await this.userSearchHistoryRepository.delete({
+      userId: user.id,
+      targetUserId,
+    });
+
+    return this.responseStrategy.success(
+      '최근 검색 유저를 성공적으로 삭제했습니다.',
+      {
+        targetUserId,
+      },
+    );
+  }
+
+  private async trimSearchHistory(userId: number) {
+    const histories = await this.userSearchHistoryRepository.find({
+      where: { userId },
+      select: {
+        id: true,
+      },
+      order: {
+        searchedAt: 'DESC',
+      },
+      take: 1000,
+    });
+
+    if (histories.length <= UserService.MAX_RECENT_SEARCHES) {
+      return;
+    }
+
+    const removeIds = histories
+      .slice(UserService.MAX_RECENT_SEARCHES)
+      .map((history) => history.id);
+
+    if (removeIds.length > 0) {
+      await this.userSearchHistoryRepository.delete(removeIds);
+    }
   }
 }
