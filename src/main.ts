@@ -5,6 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { SecurityConfig } from './config/security.config';
 import {
   getAvatarDirectory,
+  getNoticeImageDirectory,
   getUploadsDirectory,
   getUploadsPublicPath,
 } from './config/upload.config';
@@ -17,9 +18,11 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const uploadsDirectory = getUploadsDirectory();
   const avatarsDirectory = getAvatarDirectory();
+  const noticeImagesDirectory = getNoticeImageDirectory();
   const uploadsPublicPath = getUploadsPublicPath();
 
   mkdirSync(avatarsDirectory, { recursive: true });
+  mkdirSync(noticeImagesDirectory, { recursive: true });
   app.use(uploadsPublicPath, express.static(uploadsDirectory));
 
   app.use(

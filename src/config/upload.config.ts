@@ -34,3 +34,11 @@ export const getAvatarDirectory = () => {
 export const getAvatarPublicPrefix = () => {
   return `${getUploadsPublicPath()}/avatars`;
 };
+
+export const getNoticeImageDirectory = () => {
+  return join(getUploadsDirectory(), 'notices');
+};
+
+export const getNoticeImagePublicPrefix = () => {
+  return `${getUploadsPublicPath()}/notices`;
+};
