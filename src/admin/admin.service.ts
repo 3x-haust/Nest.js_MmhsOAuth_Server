@@ -4,6 +4,12 @@ import { Repository } from 'typeorm';
 import { User } from '../user/entities/user.entity';
 import { ResponseStrategy } from '../shared/strategies/response.strategy';
 import * as bcrypt from 'bcrypt';
+import { calculateAcademicInfo } from '../user/academic.util';
+
+type UserWithAcademicInfo = User & {
+  grade?: number;
+  graduationYear?: number;
+};
 
 @Injectable()
 export class AdminService {
@@ -20,7 +26,7 @@ export class AdminService {
 
     return this.responseStrategy.success(
       '사용자 목록을 성공적으로 가져왔습니다.',
-      users,
+      users.map((user) => this.withAcademicInfo(user)),
     );
   }
 
@@ -35,7 +41,7 @@ export class AdminService {
 
     return this.responseStrategy.success(
       '사용자 정보를 성공적으로 가져왔습니다.',
-      user,
+      this.withAcademicInfo(user),
     );
   }
 
@@ -75,8 +81,15 @@ export class AdminService {
 
     return this.responseStrategy.success(
       '사용자 정보가 성공적으로 업데이트되었습니다.',
-      updatedUser,
+      this.withAcademicInfo(updatedUser),
     );
+  }
+
+  private withAcademicInfo(user: User): UserWithAcademicInfo {
+    return {
+      ...user,
+      ...calculateAcademicInfo(user),
+    };
   }
 
   async deleteUser(id: number) {
