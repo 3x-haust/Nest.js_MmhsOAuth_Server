@@ -18,6 +18,7 @@ import {
 } from 'src/config/upload.config';
 import { UserSearchService } from './user-search.service';
 import { UserSearchHistory } from './entities/user-search-history.entity';
+import { calculateAcademicInfo } from './academic.util';
 
 @Injectable()
 export class UserService {
@@ -52,6 +53,8 @@ export class UserService {
       return this.responseStrategy.notFound('사용자를 찾을 수 없습니다.');
     }
 
+    const academicInfo = calculateAcademicInfo(userData);
+
     if (user.scopes) {
       const allowedFields = {};
 
@@ -79,8 +82,14 @@ export class UserService {
         allowedFields['generation'] = userData.generation;
       }
 
+      if (user.scopes.includes('grade')) {
+        allowedFields['grade'] = academicInfo.grade;
+        allowedFields['graduationYear'] = academicInfo.graduationYear;
+      }
+
       if (user.scopes.includes('isGraduated')) {
-        allowedFields['isGraduated'] = userData.isGraduated;
+        allowedFields['isGraduated'] = academicInfo.isGraduated;
+        allowedFields['graduationYear'] = academicInfo.graduationYear;
       }
 
       allowedFields['id'] = userData.id;
@@ -95,7 +104,12 @@ export class UserService {
 
     return this.responseStrategy.success(
       '사용자 정보를 성공적으로 가져왔습니다.',
-      userData,
+      {
+        ...userData,
+        grade: academicInfo.grade,
+        isGraduated: academicInfo.isGraduated,
+        graduationYear: academicInfo.graduationYear,
+      },
     );
   }
 
@@ -213,6 +227,30 @@ export class UserService {
     );
   }
 
+  async getUserGrade(user: ExtendedUser) {
+    if (!user) {
+      return this.responseStrategy.unauthorized('권한이 없습니다.');
+    }
+
+    const userData = await this.userRepository.findOne({
+      where: { id: user.id },
+    });
+
+    if (!userData) {
+      return this.responseStrategy.notFound('사용자를 찾을 수 없습니다.');
+    }
+
+    const academicInfo = calculateAcademicInfo(userData);
+    return this.responseStrategy.success(
+      '사용자 학년을 성공적으로 가져왔습니다.',
+      {
+        id: userData.id,
+        grade: academicInfo.grade,
+        graduationYear: academicInfo.graduationYear,
+      },
+    );
+  }
+
   async getUserGraduationStatus(user: ExtendedUser) {
     if (!user) {
       return this.responseStrategy.unauthorized('권한이 없습니다.');
@@ -228,7 +266,11 @@ export class UserService {
 
     return this.responseStrategy.success(
       '사용자 졸업 상태를 성공적으로 가져왔습니다.',
-      { id: userData.id, isGraduated: userData.isGraduated },
+      {
+        id: userData.id,
+        isGraduated: calculateAcademicInfo(userData).isGraduated,
+        graduationYear: calculateAcademicInfo(userData).graduationYear,
+      },
     );
   }
 
@@ -597,6 +639,8 @@ export class UserService {
           return null;
         }
 
+        const academicInfo = calculateAcademicInfo(targetUser);
+
         return {
           targetUserId: targetUser.id,
           nickname: targetUser.nickname,
@@ -607,7 +651,9 @@ export class UserService {
           major: targetUser.major,
           admission: targetUser.admission,
           generation: targetUser.generation,
-          isGraduated: targetUser.isGraduated,
+          grade: academicInfo.grade,
+          graduationYear: academicInfo.graduationYear,
+          isGraduated: academicInfo.isGraduated,
           searchedAt: history.searchedAt,
         };
       })

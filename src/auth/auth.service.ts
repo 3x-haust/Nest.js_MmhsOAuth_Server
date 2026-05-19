@@ -12,6 +12,7 @@ import { OAuthConsent } from 'src/oauth/entities/oauth-consent.entity';
 import { RequestPasswordResetDto } from 'src/user/dto/request-password-reset.dto';
 import { FindNicknameDto } from 'src/user/dto/find-nickname.dto';
 import { ResetPasswordTokenDto } from 'src/user/dto/reset-password-token.dto';
+import { calculateAcademicInfo } from 'src/user/academic.util';
 
 @Injectable()
 export class AuthService {
@@ -48,7 +49,8 @@ export class AuthService {
       role === 'student' ? Number('20' + studentNumber.slice(1, 3)) : undefined;
     const generation = admission ? admission - 2009 : undefined;
     const isGraduated = admission
-      ? new Date().getFullYear() - admission >= 3
+      ? calculateAcademicInfo({ role, admission, isGraduated: undefined })
+          .isGraduated
       : undefined;
 
     if (await this.userRepository.findOne({ where: { email } })) {
@@ -98,7 +100,8 @@ export class AuthService {
 
     const tokenPayload: any = {
       id: user.id,
-      scopes: 'email,nickname,major,isGraduated,admission,role,generation',
+      scopes:
+        'email,nickname,major,grade,isGraduated,admission,role,generation',
     };
 
     if (scopes.length > 0) {

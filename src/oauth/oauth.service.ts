@@ -5,10 +5,11 @@ import { OAuthClient } from 'src/oauth-client/entities/oauth-client.entity';
 import { RedisService } from 'src/redis/redis.service';
 import { ResponseStrategy } from 'src/shared/strategies/response.strategy';
 import { User } from 'src/user/entities/user.entity';
-import { Repository } from 'typeorm';
+import { IsNull, Not, Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { OAuthConsent } from './entities/oauth-consent.entity';
 import { PermissionHistory } from 'src/user/entities/permission-history.entity';
+import { calculateAcademicInfo } from 'src/user/academic.util';
 
 @Injectable()
 export class OAuthService {
@@ -231,6 +232,7 @@ export class OAuthService {
       30 * 24 * 60 * 60,
     );
 
+    const academicInfo = calculateAcademicInfo(user);
     const allowedFields = {};
     for (const field of requestedScopes) {
       switch (field) {
@@ -249,11 +251,16 @@ export class OAuthService {
         case 'admission':
           allowedFields['admission'] = user.admission;
           break;
+        case 'grade':
+          allowedFields['grade'] = academicInfo.grade;
+          allowedFields['graduationYear'] = academicInfo.graduationYear;
+          break;
         case 'generation':
           allowedFields['generation'] = user.generation;
           break;
         case 'isGraduated':
-          allowedFields['isGraduated'] = user.isGraduated;
+          allowedFields['isGraduated'] = academicInfo.isGraduated;
+          allowedFields['graduationYear'] = academicInfo.graduationYear;
           break;
       }
     }
@@ -308,6 +315,88 @@ export class OAuthService {
     }
 
     return this.responseStrategy.success('토큰이 성공적으로 무효화되었습니다.');
+  }
+
+  async verifyAccessToken(token: string) {
+    if (!token) {
+      return this.responseStrategy.badRequest('토큰을 입력해주세요.');
+    }
+
+    try {
+      const payload = this.jwtService.verify<{
+        id: number;
+        scopes?: string[];
+        clientId?: string;
+        exp?: number;
+        iat?: number;
+      }>(token);
+
+      const tokenData = await this.redisService.get(`access_token:${token}`);
+      if (!tokenData) {
+        return this.responseStrategy.unauthorized(
+          '유효하지 않거나 폐기된 토큰입니다.',
+        );
+      }
+
+      const parsedTokenData = JSON.parse(tokenData);
+      if (
+        parsedTokenData.userId !== payload.id ||
+        parsedTokenData.clientId !== payload.clientId
+      ) {
+        return this.responseStrategy.unauthorized(
+          '토큰 정보가 일치하지 않습니다.',
+        );
+      }
+
+      const user = await this.userRepository.findOne({
+        where: { id: payload.id },
+      });
+      if (!user) {
+        return this.responseStrategy.unauthorized('사용자를 찾을 수 없습니다.');
+      }
+
+      if (payload.clientId) {
+        const client = await this.clientRepository.findOne({
+          where: { clientId: payload.clientId },
+        });
+        if (!client) {
+          return this.responseStrategy.unauthorized(
+            '유효하지 않은 클라이언트입니다.',
+          );
+        }
+
+        const revokedConsent = await this.consentRepository.findOne({
+          where: {
+            userId: payload.id,
+            clientId: payload.clientId,
+            revokedAt: Not(IsNull()),
+          },
+        });
+        if (revokedConsent) {
+          return this.responseStrategy.unauthorized('TOKEN_EXPIRED');
+        }
+      }
+
+      return this.responseStrategy.success('유효한 토큰입니다.', {
+        active: true,
+        token_type: 'Bearer',
+        userId: payload.id,
+        clientId: payload.clientId,
+        scopes: payload.scopes ?? [],
+        issuedAt: payload.iat
+          ? new Date(payload.iat * 1000).toISOString()
+          : null,
+        expiresAt: payload.exp
+          ? new Date(payload.exp * 1000).toISOString()
+          : null,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error && error.name === 'TokenExpiredError'
+          ? 'TOKEN_EXPIRED'
+          : '유효하지 않은 토큰입니다.';
+      return this.responseStrategy.unauthorized(message);
+    }
   }
 
   async revokeUserConsent(userId: number, clientId: string) {

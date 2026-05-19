@@ -147,6 +147,15 @@ export class UserController {
   }
 
   @UseGuards(JwtAuthGuard, ScopesGuard)
+  @RequireScopes('grade')
+  @Get('grade')
+  async getUserGrade(@Res() res: Response, @Req() req: RequestWithUser) {
+    const user = req.user;
+    const response = await this.userService.getUserGrade(user);
+    return res.status(response.status).json(response);
+  }
+
+  @UseGuards(JwtAuthGuard, ScopesGuard)
   @RequireScopes('isGraduated')
   @Get('is-graduated')
   async getUserGraduationStatus(

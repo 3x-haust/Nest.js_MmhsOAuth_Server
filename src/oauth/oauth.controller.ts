@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   Post,
   Query,
   Req,
@@ -300,6 +301,21 @@ export class OAuthController {
       token,
       clientId,
       clientSecret,
+    );
+    return res.status(result.status).json(result);
+  }
+
+  @Post('verify-token')
+  async verifyToken(
+    @Body('token') token: string,
+    @Headers('authorization') authorization: string,
+    @Res() res: Response,
+  ) {
+    const bearerToken = authorization?.startsWith('Bearer ')
+      ? authorization.slice('Bearer '.length).trim()
+      : '';
+    const result = await this.oauthService.verifyAccessToken(
+      token || bearerToken,
     );
     return res.status(result.status).json(result);
   }

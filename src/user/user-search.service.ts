@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Client } from '@elastic/elasticsearch';
 import { ILike, Repository } from 'typeorm';
+import { calculateAcademicInfo } from './academic.util';
 import { User } from './entities/user.entity';
 
 type SearchableUser = {
@@ -12,6 +13,8 @@ type SearchableUser = {
   role: 'student' | 'teacher';
   major: 'software' | 'design' | 'web';
   admission?: number;
+  grade?: number;
+  graduationYear?: number;
   generation?: number;
   isGraduated?: boolean;
   isAdmin: boolean;
@@ -253,6 +256,8 @@ export class UserSearchService implements OnModuleInit {
             role: { type: 'keyword' },
             major: { type: 'keyword' },
             admission: { type: 'integer' },
+            grade: { type: 'integer' },
+            graduationYear: { type: 'integer' },
             generation: { type: 'integer' },
             isGraduated: { type: 'boolean' },
             isAdmin: { type: 'boolean' },
@@ -344,7 +349,7 @@ export class UserSearchService implements OnModuleInit {
       ? [{ nickname: ILike(`%${keyword}%`) }, { email: ILike(`%${keyword}%`) }]
       : undefined;
 
-    return this.userRepository.find({
+    const users = await this.userRepository.find({
       where,
       select: {
         id: true,
@@ -360,6 +365,11 @@ export class UserSearchService implements OnModuleInit {
       },
       take: limit,
     });
+
+    return users.map((user) => ({
+      ...user,
+      ...calculateAcademicInfo(user),
+    }));
   }
 
   private toDocument(user: SearchableUser): SearchUserDocument {
@@ -378,6 +388,8 @@ export class UserSearchService implements OnModuleInit {
       role: document.role,
       major: document.major,
       admission: document.admission,
+      grade: document.grade,
+      graduationYear: document.graduationYear,
       generation: document.generation,
       isGraduated: document.isGraduated,
       isAdmin: document.isAdmin,
