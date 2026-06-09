@@ -199,6 +199,9 @@ export class UserSearchService implements OnModuleInit {
       await this.elasticsearch.indices.create({
         index: this.indexName,
         settings: {
+          index: {
+            max_ngram_diff: 19,
+          },
           analysis: {
             tokenizer: {
               user_autocomplete_ngram: {
