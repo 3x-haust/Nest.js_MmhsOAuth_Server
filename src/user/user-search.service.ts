@@ -84,7 +84,7 @@ export class UserSearchService implements OnModuleInit {
   async searchUsers(query: string, limit = 20): Promise<SearchableUser[]> {
     const keyword = query.trim();
     if (!keyword) {
-      return [];
+      return this.searchUsersFromDatabase('', limit);
     }
 
     if (!this.elasticsearch) {

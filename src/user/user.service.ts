@@ -576,11 +576,10 @@ export class UserService {
 
   async searchUsers(query: string) {
     const keyword = query.trim();
-    if (!keyword) {
-      return this.responseStrategy.badRequest('검색어를 입력해주세요.');
-    }
-
-    const users = await this.userSearchService.searchUsers(keyword, 20);
+    const users = await this.userSearchService.searchUsers(
+      keyword,
+      keyword ? 20 : 100000,
+    );
 
     return this.responseStrategy.success(
       '유저 검색 결과를 성공적으로 가져왔습니다.',
