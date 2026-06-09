@@ -101,7 +101,7 @@ export class AuthService {
     const tokenPayload: any = {
       id: user.id,
       scopes:
-        'email,nickname,major,grade,isGraduated,admission,role,generation',
+        'email,nickname,major,grade,isGraduated,admission,role,generation,profileImageUrl',
     };
 
     if (scopes.length > 0) {

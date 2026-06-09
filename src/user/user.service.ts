@@ -92,9 +92,12 @@ export class UserService {
         allowedFields['graduationYear'] = academicInfo.graduationYear;
       }
 
+      if (user.scopes.includes('profileImageUrl')) {
+        allowedFields['profileImageUrl'] = userData.profileImageUrl;
+      }
+
       allowedFields['id'] = userData.id;
       allowedFields['isAdmin'] = userData.isAdmin;
-      allowedFields['profileImageUrl'] = userData.profileImageUrl;
 
       return this.responseStrategy.success(
         '사용자 정보를 성공적으로 가져왔습니다.',

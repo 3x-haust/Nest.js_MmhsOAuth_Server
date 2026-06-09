@@ -262,6 +262,9 @@ export class OAuthService {
           allowedFields['isGraduated'] = academicInfo.isGraduated;
           allowedFields['graduationYear'] = academicInfo.graduationYear;
           break;
+        case 'profileImageUrl':
+          allowedFields['profileImageUrl'] = user.profileImageUrl;
+          break;
       }
     }
 
