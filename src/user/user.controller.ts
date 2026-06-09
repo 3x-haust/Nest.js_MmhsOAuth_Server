@@ -31,6 +31,7 @@ import {
   getAvatarDirectory,
   getAvatarPublicPrefix,
 } from 'src/config/upload.config';
+import { generateMirimBadgeSvg } from './default-avatar.util';
 
 const avatarMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
@@ -222,6 +223,17 @@ export class UserController {
     const user = req.user;
     const response = await this.userService.deleteProfileImage(user);
     return res.status(response.status).json(response);
+  }
+
+  @Get('default-profile-image/:userId.svg')
+  getDefaultProfileImage(
+    @Param('userId') userId: string,
+    @Res() res: Response,
+  ) {
+    const svg = generateMirimBadgeSvg(userId);
+    res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    return res.status(200).send(svg);
   }
 
   @UseGuards(JwtAuthGuard)

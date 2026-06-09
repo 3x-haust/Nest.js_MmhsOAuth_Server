@@ -19,6 +19,7 @@ import {
 import { UserSearchService } from './user-search.service';
 import { UserSearchHistory } from './entities/user-search-history.entity';
 import { calculateAcademicInfo } from './academic.util';
+import { resolveProfileImageUrl } from './default-avatar.util';
 
 @Injectable()
 export class UserService {
@@ -93,7 +94,7 @@ export class UserService {
       }
 
       if (user.scopes.includes('profileImageUrl')) {
-        allowedFields['profileImageUrl'] = userData.profileImageUrl;
+        allowedFields['profileImageUrl'] = resolveProfileImageUrl(userData);
       }
 
       allowedFields['id'] = userData.id;
@@ -109,6 +110,7 @@ export class UserService {
       '사용자 정보를 성공적으로 가져왔습니다.',
       {
         ...userData,
+        profileImageUrl: resolveProfileImageUrl(userData),
         grade: academicInfo.grade,
         isGraduated: academicInfo.isGraduated,
         graduationYear: academicInfo.graduationYear,
@@ -357,7 +359,7 @@ export class UserService {
         id: updatedUser.id,
         email: updatedUser.email,
         nickname: updatedUser.nickname,
-        profileImageUrl: updatedUser.profileImageUrl,
+        profileImageUrl: resolveProfileImageUrl(updatedUser),
         updatedAt: updatedUser.updatedAt,
       },
     );
@@ -412,7 +414,7 @@ export class UserService {
       '프로필 이미지가 성공적으로 업데이트되었습니다.',
       {
         id: updatedUser.id,
-        profileImageUrl: updatedUser.profileImageUrl,
+        profileImageUrl: resolveProfileImageUrl(updatedUser),
         updatedAt: updatedUser.updatedAt,
       },
     );
@@ -431,18 +433,18 @@ export class UserService {
       return this.responseStrategy.notFound('사용자를 찾을 수 없습니다.');
     }
 
-    if (!userData.profileImageUrl) {
-      return this.responseStrategy.badRequest(
-        '삭제할 프로필 이미지가 없습니다.',
-      );
-    }
-
     await this.removeProfileImageFile(userData.profileImageUrl);
     await this.userRepository.update(user.id, { profileImageUrl: null });
 
     return this.responseStrategy.success(
       '프로필 이미지가 성공적으로 삭제되었습니다.',
-      { id: user.id, profileImageUrl: null },
+      {
+        id: user.id,
+        profileImageUrl: resolveProfileImageUrl({
+          id: user.id,
+          profileImageUrl: null,
+        }),
+      },
     );
   }
 
@@ -647,7 +649,7 @@ export class UserService {
           targetUserId: targetUser.id,
           nickname: targetUser.nickname,
           email: targetUser.email,
-          profileImageUrl: targetUser.profileImageUrl,
+          profileImageUrl: resolveProfileImageUrl(targetUser),
           isAdmin: targetUser.isAdmin,
           role: targetUser.role,
           major: targetUser.major,

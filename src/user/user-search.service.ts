@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Client } from '@elastic/elasticsearch';
 import { ILike, Repository } from 'typeorm';
 import { calculateAcademicInfo } from './academic.util';
+import { resolveProfileImageUrl } from './default-avatar.util';
 import { User } from './entities/user.entity';
 
 type SearchableUser = {
@@ -368,6 +369,7 @@ export class UserSearchService implements OnModuleInit {
 
     return users.map((user) => ({
       ...user,
+      profileImageUrl: resolveProfileImageUrl(user),
       ...calculateAcademicInfo(user),
     }));
   }
@@ -384,7 +386,7 @@ export class UserSearchService implements OnModuleInit {
       id: document.id,
       email: document.email,
       nickname: document.nickname,
-      profileImageUrl: document.profileImageUrl ?? null,
+      profileImageUrl: resolveProfileImageUrl(document),
       role: document.role,
       major: document.major,
       admission: document.admission,

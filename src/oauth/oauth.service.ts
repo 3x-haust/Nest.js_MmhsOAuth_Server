@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { OAuthConsent } from './entities/oauth-consent.entity';
 import { PermissionHistory } from 'src/user/entities/permission-history.entity';
 import { calculateAcademicInfo } from 'src/user/academic.util';
+import { resolveProfileImageUrl } from 'src/user/default-avatar.util';
 
 @Injectable()
 export class OAuthService {
@@ -263,7 +264,7 @@ export class OAuthService {
           allowedFields['graduationYear'] = academicInfo.graduationYear;
           break;
         case 'profileImageUrl':
-          allowedFields['profileImageUrl'] = user.profileImageUrl;
+          allowedFields['profileImageUrl'] = resolveProfileImageUrl(user);
           break;
       }
     }
