@@ -14,6 +14,19 @@ import { FindNicknameDto } from 'src/user/dto/find-nickname.dto';
 import { ResetPasswordTokenDto } from 'src/user/dto/reset-password-token.dto';
 import { calculateAcademicInfo } from 'src/user/academic.util';
 
+const DEFAULT_LOGIN_SCOPES =
+  'email,nickname,major,grade,isGraduated,admission,role,generation,profileImageUrl';
+
+type AuthTokenPayload = {
+  id: number;
+  clientId?: string;
+  nickname?: string;
+  scopes?: string | string[];
+};
+
+const normalizeEmail = (email: string): string => email.trim().toLowerCase();
+const normalizeNickname = (nickname: string): string => nickname.trim();
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -26,7 +39,10 @@ export class AuthService {
   ) {}
 
   async signUp(signUpDto: SignUpDto) {
-    const { email, password, nickname, code } = signUpDto;
+    const email = normalizeEmail(signUpDto.email);
+    const password = signUpDto.password;
+    const nickname = normalizeNickname(signUpDto.nickname);
+    const code = signUpDto.code.trim();
 
     if (!email.endsWith('@e-mirim.hs.kr')) {
       return this.responseStrategy.badRequest(
@@ -84,9 +100,14 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto, scope?: string) {
-    const { nickname, password } = loginDto;
+    const loginIdentifier = normalizeNickname(loginDto.nickname);
+    const { password } = loginDto;
 
-    const user = await this.userRepository.findOne({ where: { nickname } });
+    const user = await this.userRepository.findOne({
+      where: loginIdentifier.includes('@')
+        ? { email: normalizeEmail(loginIdentifier) }
+        : { nickname: loginIdentifier },
+    });
     if (!user)
       return this.responseStrategy.notFound('사용자를 찾을 수 없습니다.');
 
@@ -98,10 +119,9 @@ export class AuthService {
 
     const scopes = scope ? scope.split(',').filter(Boolean) : [];
 
-    const tokenPayload: any = {
+    const tokenPayload: AuthTokenPayload = {
       id: user.id,
-      scopes:
-        'email,nickname,major,grade,isGraduated,admission,role,generation,profileImageUrl',
+      scopes: DEFAULT_LOGIN_SCOPES,
     };
 
     if (scopes.length > 0) {
@@ -159,7 +179,7 @@ export class AuthService {
         return this.responseStrategy.unauthorized('토큰이 만료되었습니다.');
       }
 
-      const tokenPayload: any = {
+      const tokenPayload: AuthTokenPayload = {
         id: user.id,
         nickname: user.nickname,
       };
