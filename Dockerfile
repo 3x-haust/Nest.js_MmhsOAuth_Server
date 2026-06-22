@@ -13,5 +13,5 @@ RUN yarn install --production --frozen-lockfile --silent && yarn cache clean
 COPY --from=builder /usr/src/app/dist ./dist
 EXPOSE 3000
 RUN mkdir -p uploads && chown -R node:node /usr/src/app
-USER node
+USER root
 CMD ["yarn", "start:prod"]
