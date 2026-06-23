@@ -5,6 +5,7 @@ import { ILike, Repository } from 'typeorm';
 import { calculateAcademicInfo } from './academic.util';
 import { resolveProfileImageUrl } from './default-avatar.util';
 import { User } from './entities/user.entity';
+import { getVisibleMajor } from './user-visibility.util';
 
 type SearchableUser = {
   id: number;
@@ -12,7 +13,7 @@ type SearchableUser = {
   nickname: string;
   profileImageUrl: string | null;
   role: 'student' | 'teacher';
-  major: 'software' | 'design' | 'web';
+  major?: 'software' | 'design' | 'web';
   admission?: number;
   grade?: number;
   graduationYear?: number;
@@ -78,7 +79,12 @@ export class UserSearchService implements OnModuleInit {
       await this.ensureIndex();
       await this.syncUsers(true);
     } catch (error) {
-      console.error('Failed to initialize Elasticsearch user index:', error);
+      const safeError =
+        error instanceof Error ? error : new Error(String(error));
+      console.error(
+        'Failed to initialize Elasticsearch user index:',
+        safeError,
+      );
     }
   }
 
@@ -177,9 +183,11 @@ export class UserSearchService implements OnModuleInit {
         return this.rankUsers(users, keyword, limit);
       }
     } catch (error) {
+      const safeError =
+        error instanceof Error ? error : new Error(String(error));
       console.error(
         'Elasticsearch user search failed. Falling back to DB search.',
-        error,
+        safeError,
       );
     }
 
@@ -370,11 +378,24 @@ export class UserSearchService implements OnModuleInit {
       take: limit,
     });
 
-    return users.map((user) => ({
-      ...user,
-      profileImageUrl: resolveProfileImageUrl(user),
-      ...calculateAcademicInfo(user),
-    }));
+    return users.map((user) => {
+      const academicInfo = calculateAcademicInfo(user);
+
+      return {
+        id: user.id,
+        email: user.email,
+        nickname: user.nickname,
+        profileImageUrl: resolveProfileImageUrl(user),
+        role: user.role,
+        ...getVisibleMajor(user),
+        admission: user.admission,
+        grade: academicInfo.grade,
+        graduationYear: academicInfo.graduationYear,
+        generation: user.generation,
+        isGraduated: academicInfo.isGraduated,
+        isAdmin: user.isAdmin,
+      };
+    });
   }
 
   private toDocument(user: SearchableUser): SearchUserDocument {
@@ -391,7 +412,7 @@ export class UserSearchService implements OnModuleInit {
       nickname: document.nickname,
       profileImageUrl: resolveProfileImageUrl(document),
       role: document.role,
-      major: document.major,
+      ...getVisibleMajor(document),
       admission: document.admission,
       grade: document.grade,
       graduationYear: document.graduationYear,

@@ -11,6 +11,7 @@ import { OAuthConsent } from './entities/oauth-consent.entity';
 import { PermissionHistory } from 'src/user/entities/permission-history.entity';
 import { calculateAcademicInfo } from 'src/user/academic.util';
 import { resolveProfileImageUrl } from 'src/user/default-avatar.util';
+import { getVisibleMajor } from 'src/user/user-visibility.util';
 
 @Injectable()
 export class OAuthService {
@@ -247,7 +248,7 @@ export class OAuthService {
           allowedFields['role'] = user.role;
           break;
         case 'major':
-          allowedFields['major'] = user.major;
+          Object.assign(allowedFields, getVisibleMajor(user));
           break;
         case 'admission':
           allowedFields['admission'] = user.admission;

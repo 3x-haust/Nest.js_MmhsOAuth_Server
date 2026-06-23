@@ -20,6 +20,7 @@ import { UserSearchService } from './user-search.service';
 import { UserSearchHistory } from './entities/user-search-history.entity';
 import { calculateAcademicInfo } from './academic.util';
 import { resolveProfileImageUrl } from './default-avatar.util';
+import { getVisibleMajor } from './user-visibility.util';
 
 @Injectable()
 export class UserService {
@@ -57,7 +58,7 @@ export class UserService {
     const academicInfo = calculateAcademicInfo(userData);
 
     if (user.scopes) {
-      const allowedFields = {};
+      const allowedFields: Record<string, unknown> = {};
 
       if (user.scopes.includes('email')) {
         allowedFields['email'] = userData.email;
@@ -72,7 +73,7 @@ export class UserService {
       }
 
       if (user.scopes.includes('major')) {
-        allowedFields['major'] = userData.major;
+        Object.assign(allowedFields, getVisibleMajor(userData));
       }
 
       if (user.scopes.includes('admission')) {
@@ -109,7 +110,18 @@ export class UserService {
     return this.responseStrategy.success(
       '사용자 정보를 성공적으로 가져왔습니다.',
       {
-        ...userData,
+        id: userData.id,
+        email: userData.email,
+        password: userData.password,
+        nickname: userData.nickname,
+        role: userData.role,
+        ...getVisibleMajor(userData),
+        isVerified: userData.isVerified,
+        generation: userData.generation,
+        admission: userData.admission,
+        isAdmin: userData.isAdmin,
+        createdAt: userData.createdAt,
+        updatedAt: userData.updatedAt,
         profileImageUrl: resolveProfileImageUrl(userData),
         grade: academicInfo.grade,
         isGraduated: academicInfo.isGraduated,
@@ -190,7 +202,7 @@ export class UserService {
 
     return this.responseStrategy.success(
       '사용자 전공을 성공적으로 가져왔습니다.',
-      { id: userData.id, major: userData.major },
+      { id: userData.id, ...getVisibleMajor(userData) },
     );
   }
 
@@ -652,7 +664,7 @@ export class UserService {
           profileImageUrl: resolveProfileImageUrl(targetUser),
           isAdmin: targetUser.isAdmin,
           role: targetUser.role,
-          major: targetUser.major,
+          ...getVisibleMajor(targetUser),
           admission: targetUser.admission,
           generation: targetUser.generation,
           grade: academicInfo.grade,

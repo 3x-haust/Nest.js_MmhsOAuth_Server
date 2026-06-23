@@ -31,6 +31,16 @@ const createUser = (
     updatedAt: new Date('2026-01-01T00:00:00.000Z'),
   });
 
+const createTeacher = (): User =>
+  Object.assign(createUser(null), {
+    email: 'teacher@e-mirim.hs.kr',
+    nickname: 'teacher',
+    role: 'teacher',
+    admission: null,
+    generation: null,
+    isGraduated: null,
+  });
+
 const createClient = (): OAuthClient =>
   Object.assign(new OAuthClient(), {
     id: 1,
@@ -200,6 +210,87 @@ describe('OAuthService', () => {
     // Then: the user payload includes the generated Mirim Badge URL.
     expect(result.user).toEqual({
       profileImageUrl: getDefaultProfileImageUrl(user.id),
+    });
+  });
+
+  it('omits teacher major even when the major scope is requested', async () => {
+    // Given: an OAuth client requests major for a teacher account.
+    const user = createTeacher();
+    const client = Object.assign(createClient(), {
+      scope: 'email,nickname,role,major',
+    });
+    const userFindOne = jest.fn().mockResolvedValue(user);
+    const clientFindOne = jest.fn().mockResolvedValue(client);
+    const redisGet = jest.fn().mockResolvedValue(
+      JSON.stringify({
+        userId: user.id,
+        clientId: client.clientId,
+        state: 'state-value',
+      }),
+    );
+    const redisSet = jest.fn().mockResolvedValue(undefined);
+    const redisDel = jest.fn().mockResolvedValue(undefined);
+    const jwtSign = jest
+      .fn()
+      .mockReturnValueOnce('access-token')
+      .mockReturnValueOnce('refresh-token');
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        OAuthService,
+        {
+          provide: getRepositoryToken(User),
+          useValue: { findOne: userFindOne },
+        },
+        {
+          provide: getRepositoryToken(OAuthClient),
+          useValue: { findOne: clientFindOne },
+        },
+        {
+          provide: getRepositoryToken(OAuthConsent),
+          useValue: {},
+        },
+        {
+          provide: getRepositoryToken(PermissionHistory),
+          useValue: {},
+        },
+        {
+          provide: ResponseStrategy,
+          useValue: {
+            badRequest: jest.fn(),
+            unauthorized: jest.fn(),
+          },
+        },
+        {
+          provide: RedisService,
+          useValue: {
+            get: redisGet,
+            set: redisSet,
+            del: redisDel,
+          },
+        },
+        {
+          provide: JwtService,
+          useValue: { sign: jwtSign },
+        },
+      ],
+    }).compile();
+    const service = moduleRef.get(OAuthService);
+
+    // When: the authorization code is exchanged with the major scope.
+    const result = await service.exchangeAuthorizationCodeForToken(
+      'auth-code',
+      client.clientId,
+      client.clientSecret,
+      'state-value',
+      'email,nickname,role,major',
+    );
+
+    // Then: the teacher payload keeps role data but does not expose major.
+    expect(result.user).toEqual({
+      email: user.email,
+      nickname: user.nickname,
+      role: user.role,
     });
   });
 });
