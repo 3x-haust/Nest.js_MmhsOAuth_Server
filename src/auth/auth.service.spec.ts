@@ -8,7 +8,9 @@ import { ResponseStrategy } from 'src/shared/strategies/response.strategy';
 import { User } from 'src/user/entities/user.entity';
 import { AuthService } from './auth.service';
 
-type UserWhere = Partial<Pick<User, 'email' | 'id' | 'nickname'>>;
+type UserWhere = Partial<
+  Pick<User, 'email' | 'id' | 'nickname' | 'personalEmail'>
+>;
 type FindOneInput = { readonly where: UserWhere | readonly UserWhere[] };
 
 const fixedDate = new Date('2026-01-01T00:00:00.000Z');
@@ -17,6 +19,12 @@ const matchesWhere = (user: User, where: UserWhere): boolean => {
   if (where.email !== undefined && user.email !== where.email) return false;
   if (where.id !== undefined && user.id !== where.id) return false;
   if (where.nickname !== undefined && user.nickname !== where.nickname) {
+    return false;
+  }
+  if (
+    where.personalEmail !== undefined &&
+    user.personalEmail !== where.personalEmail
+  ) {
     return false;
   }
 
@@ -32,6 +40,8 @@ const createUserRepository = () => {
       Object.assign(new User(), {
         id: nextId++,
         isAdmin: false,
+        personalEmail: null,
+        personalEmailVerifiedAt: null,
         profileImageUrl: null,
         createdAt: fixedDate,
         updatedAt: fixedDate,
@@ -76,6 +86,12 @@ const createAuthService = async () => {
         provide: EmailService,
         useValue: {
           verifyCode: jest.fn().mockResolvedValue(true),
+          sendPasswordResetLink: jest
+            .fn()
+            .mockResolvedValue({ status: 200, message: 'sent' }),
+          sendNicknameRecoveryEmail: jest
+            .fn()
+            .mockResolvedValue({ status: 200, message: 'sent' }),
         },
       },
       {
@@ -88,6 +104,7 @@ const createAuthService = async () => {
 
   return {
     service: moduleRef.get(AuthService),
+    emailService: moduleRef.get(EmailService),
     userRepository,
   };
 };
@@ -120,5 +137,64 @@ describe('AuthService', () => {
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
     });
+  });
+
+  it('logs in with a verified personal email identifier', async () => {
+    // Given: a user has registered a verified personal email after signup.
+    const { service } = await createAuthService();
+    const password = 'password123';
+    const signUpResult = await service.signUp({
+      email: 's2402@e-mirim.hs.kr',
+      nickname: 'student-personal',
+      password,
+      code: '123456',
+    });
+    const savedUser = signUpResult.data;
+    if (!(savedUser instanceof User)) {
+      throw new Error('signup did not return a user');
+    }
+    savedUser.personalEmail = 'student.personal@example.com';
+    savedUser.personalEmailVerifiedAt = fixedDate;
+
+    // When: they log in with the personal email.
+    const loginResult = await service.login({
+      nickname: 'student.personal@example.com',
+      password,
+    });
+
+    // Then: the login succeeds with the same token contract.
+    expect(loginResult.status).toBe(200);
+    expect(loginResult.data).toEqual({
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+    });
+  });
+
+  it('sends recovery mail to a verified personal email', async () => {
+    // Given: a user has a verified personal email for graduation-safe recovery.
+    const { service, emailService } = await createAuthService();
+    const signUpResult = await service.signUp({
+      email: 's2403@e-mirim.hs.kr',
+      nickname: 'student-recovery',
+      password: 'password123',
+      code: '123456',
+    });
+    const savedUser = signUpResult.data;
+    if (!(savedUser instanceof User)) {
+      throw new Error('signup did not return a user');
+    }
+    savedUser.personalEmail = 'student.recovery@example.com';
+    savedUser.personalEmailVerifiedAt = fixedDate;
+
+    // When: account recovery is requested with that personal email.
+    const result = await service.requestPasswordReset({
+      email: 'student.recovery@example.com',
+    });
+
+    // Then: the reset link is sent to the personal email.
+    expect(result.status).toBe(200);
+    expect(emailService.sendPasswordResetLink).toHaveBeenCalledWith(
+      'student.recovery@example.com',
+    );
   });
 });

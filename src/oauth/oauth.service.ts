@@ -11,6 +11,7 @@ import { OAuthConsent } from './entities/oauth-consent.entity';
 import { PermissionHistory } from 'src/user/entities/permission-history.entity';
 import { calculateAcademicInfo } from 'src/user/academic.util';
 import { resolveProfileImageUrl } from 'src/user/default-avatar.util';
+import { getPrimaryEmail } from 'src/user/user-email.util';
 import { getVisibleMajor } from 'src/user/user-visibility.util';
 
 @Injectable()
@@ -240,6 +241,15 @@ export class OAuthService {
       switch (field) {
         case 'email':
           allowedFields['email'] = user.email;
+          break;
+        case 'schoolEmail':
+          allowedFields['schoolEmail'] = user.email;
+          break;
+        case 'personalEmail':
+          allowedFields['personalEmail'] = user.personalEmail;
+          break;
+        case 'primaryEmail':
+          allowedFields['primaryEmail'] = getPrimaryEmail(user);
           break;
         case 'nickname':
           allowedFields['nickname'] = user.nickname;

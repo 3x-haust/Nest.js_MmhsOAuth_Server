@@ -9,6 +9,7 @@ import * as bcrypt from 'bcrypt';
 import { OAuthConsent } from 'src/oauth/entities/oauth-consent.entity';
 import { OAuthClient } from 'src/oauth-client/entities/oauth-client.entity';
 import { RedisService } from 'src/redis/redis.service';
+import { EmailService } from 'src/email/email.service';
 import { PermissionHistory } from './entities/permission-history.entity';
 import { unlink } from 'fs/promises';
 import { join } from 'path';
@@ -20,7 +21,17 @@ import { UserSearchService } from './user-search.service';
 import { UserSearchHistory } from './entities/user-search-history.entity';
 import { calculateAcademicInfo } from './academic.util';
 import { resolveProfileImageUrl } from './default-avatar.util';
+import {
+  getPrimaryEmail,
+  getUserEmailFields,
+  isSchoolEmail,
+  normalizeEmail,
+} from './user-email.util';
 import { getVisibleMajor } from './user-visibility.util';
+import {
+  RequestPersonalEmailCodeDto,
+  VerifyPersonalEmailDto,
+} from './dto/personal-email.dto';
 
 @Injectable()
 export class UserService {
@@ -39,6 +50,7 @@ export class UserService {
     private readonly userSearchHistoryRepository: Repository<UserSearchHistory>,
     private readonly userSearchService: UserSearchService,
     private readonly redisService: RedisService,
+    private readonly emailService: EmailService,
     private responseStrategy: ResponseStrategy,
   ) {}
 
@@ -62,6 +74,28 @@ export class UserService {
 
       if (user.scopes.includes('email')) {
         allowedFields['email'] = userData.email;
+      }
+
+      if (user.scopes.includes('schoolEmail')) {
+        allowedFields['schoolEmail'] = userData.email;
+      }
+
+      if (user.scopes.includes('personalEmail')) {
+        allowedFields['personalEmail'] = userData.personalEmail;
+      }
+
+      if (user.scopes.includes('personalEmailVerifiedAt')) {
+        allowedFields['personalEmailVerifiedAt'] =
+          userData.personalEmailVerifiedAt;
+      }
+
+      if (user.scopes.includes('primaryEmail')) {
+        allowedFields['primaryEmail'] = getPrimaryEmail(userData);
+      }
+
+      if (user.scopes.includes('requiresPersonalEmail')) {
+        allowedFields['requiresPersonalEmail'] =
+          !userData.personalEmail || !userData.personalEmailVerifiedAt;
       }
 
       if (user.scopes.includes('nickname')) {
@@ -112,6 +146,7 @@ export class UserService {
       {
         id: userData.id,
         email: userData.email,
+        ...getUserEmailFields(userData),
         password: userData.password,
         nickname: userData.nickname,
         role: userData.role,
@@ -145,8 +180,91 @@ export class UserService {
 
     return this.responseStrategy.success(
       '사용자 이메일을 성공적으로 가져왔습니다.',
-      { id: userData.id, email: userData.email },
+      {
+        id: userData.id,
+        email: userData.email,
+        ...getUserEmailFields(userData),
+      },
     );
+  }
+
+  async requestPersonalEmailCode(
+    user: ExtendedUser,
+    requestDto: RequestPersonalEmailCodeDto,
+  ) {
+    if (!user) {
+      return this.responseStrategy.unauthorized('권한이 없습니다.');
+    }
+
+    const personalEmail = normalizeEmail(requestDto.personalEmail);
+
+    if (isSchoolEmail(personalEmail)) {
+      return this.responseStrategy.badRequest(
+        '개인 이메일은 학교 이메일이 아닌 주소를 사용해주세요.',
+      );
+    }
+
+    const existingUser = await this.userRepository.findOne({
+      where: { personalEmail },
+    });
+
+    if (existingUser && existingUser.id !== user.id) {
+      return this.responseStrategy.badRequest(
+        '이미 사용 중인 개인 이메일입니다.',
+      );
+    }
+
+    return this.emailService.sendVerificationCode(personalEmail);
+  }
+
+  async verifyPersonalEmail(
+    user: ExtendedUser,
+    verifyDto: VerifyPersonalEmailDto,
+  ) {
+    if (!user) {
+      return this.responseStrategy.unauthorized('권한이 없습니다.');
+    }
+
+    const personalEmail = normalizeEmail(verifyDto.personalEmail);
+
+    if (isSchoolEmail(personalEmail)) {
+      return this.responseStrategy.badRequest(
+        '개인 이메일은 학교 이메일이 아닌 주소를 사용해주세요.',
+      );
+    }
+
+    const existingUser = await this.userRepository.findOne({
+      where: { personalEmail },
+    });
+
+    if (existingUser && existingUser.id !== user.id) {
+      return this.responseStrategy.badRequest(
+        '이미 사용 중인 개인 이메일입니다.',
+      );
+    }
+
+    const isValidCode = await this.emailService.verifyCode(
+      personalEmail,
+      verifyDto.code.trim(),
+    );
+
+    if (!isValidCode) {
+      return this.responseStrategy.badRequest('유효하지 않은 인증 코드입니다.');
+    }
+
+    const personalEmailVerifiedAt = new Date();
+    await this.userRepository.update(user.id, {
+      personalEmail,
+      personalEmailVerifiedAt,
+    });
+
+    return this.responseStrategy.success('개인 이메일이 등록되었습니다.', {
+      id: user.id,
+      personalEmail,
+      personalEmailVerifiedAt,
+      primaryEmail: personalEmail,
+      requiresPersonalEmail: false,
+    });
   }
 
   async getUserNickname(user: ExtendedUser) {

@@ -28,6 +28,10 @@ import { ScopesGuard } from 'src/auth/guard/scopes.guard';
 import { RequireScopes } from 'src/auth/decorators/scopes.decorator';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import {
+  RequestPersonalEmailCodeDto,
+  VerifyPersonalEmailDto,
+} from './dto/personal-email.dto';
+import {
   getAvatarDirectory,
   getAvatarPublicPrefix,
 } from 'src/config/upload.config';
@@ -165,6 +169,34 @@ export class UserController {
   ) {
     const user = req.user;
     const response = await this.userService.getUserGraduationStatus(user);
+    return res.status(response.status).json(response);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('personal-email/code')
+  async requestPersonalEmailCode(
+    @Body() requestDto: RequestPersonalEmailCodeDto,
+    @Res() res: Response,
+    @Req() req: RequestWithUser,
+  ) {
+    const response = await this.userService.requestPersonalEmailCode(
+      req.user,
+      requestDto,
+    );
+    return res.status(response.status).json(response);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put('personal-email')
+  async verifyPersonalEmail(
+    @Body() verifyDto: VerifyPersonalEmailDto,
+    @Res() res: Response,
+    @Req() req: RequestWithUser,
+  ) {
+    const response = await this.userService.verifyPersonalEmail(
+      req.user,
+      verifyDto,
+    );
     return res.status(response.status).json(response);
   }
 

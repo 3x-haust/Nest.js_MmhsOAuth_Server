@@ -10,6 +10,7 @@ import { RedisService } from 'src/redis/redis.service';
 import { PermissionHistory } from './entities/permission-history.entity';
 import { UserSearchService } from './user-search.service';
 import { UserSearchHistory } from './entities/user-search-history.entity';
+import { EmailService } from 'src/email/email.service';
 
 @Module({
   imports: [
@@ -22,7 +23,13 @@ import { UserSearchHistory } from './entities/user-search-history.entity';
     ]),
   ],
   controllers: [UserController],
-  providers: [UserService, UserSearchService, ResponseStrategy, RedisService],
+  providers: [
+    UserService,
+    UserSearchService,
+    EmailService,
+    ResponseStrategy,
+    RedisService,
+  ],
   exports: [UserService, UserSearchService, TypeOrmModule, RedisService],
 })
 export class UserModule {}

@@ -14,6 +14,12 @@ export class User {
   @Column({ unique: true })
   email: string;
 
+  @Column({ unique: true, nullable: true })
+  personalEmail: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  personalEmailVerifiedAt: Date | null;
+
   @Column()
   password: string;
 

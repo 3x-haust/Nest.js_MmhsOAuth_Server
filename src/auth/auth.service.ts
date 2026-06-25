@@ -15,7 +15,7 @@ import { ResetPasswordTokenDto } from 'src/user/dto/reset-password-token.dto';
 import { calculateAcademicInfo } from 'src/user/academic.util';
 
 const DEFAULT_LOGIN_SCOPES =
-  'email,nickname,major,grade,isGraduated,admission,role,generation,profileImageUrl';
+  'email,schoolEmail,personalEmail,personalEmailVerifiedAt,primaryEmail,requiresPersonalEmail,nickname,major,grade,isGraduated,admission,role,generation,profileImageUrl';
 
 type AuthTokenPayload = {
   id: number;
@@ -102,10 +102,13 @@ export class AuthService {
   async login(loginDto: LoginDto, scope?: string) {
     const loginIdentifier = normalizeNickname(loginDto.nickname);
     const { password } = loginDto;
+    const emailIdentifier = loginIdentifier.includes('@')
+      ? normalizeEmail(loginIdentifier)
+      : null;
 
     const user = await this.userRepository.findOne({
-      where: loginIdentifier.includes('@')
-        ? { email: normalizeEmail(loginIdentifier) }
+      where: emailIdentifier
+        ? [{ email: emailIdentifier }, { personalEmail: emailIdentifier }]
         : { nickname: loginIdentifier },
     });
     if (!user)
@@ -210,9 +213,11 @@ export class AuthService {
   }
 
   async requestPasswordReset(requestPasswordResetDto: RequestPasswordResetDto) {
-    const { email } = requestPasswordResetDto;
+    const email = normalizeEmail(requestPasswordResetDto.email);
 
-    const user = await this.userRepository.findOne({ where: { email } });
+    const user = await this.userRepository.findOne({
+      where: [{ email }, { personalEmail: email }],
+    });
     if (!user) {
       return this.responseStrategy.notFound(
         '등록된 이메일을 찾을 수 없습니다.',
@@ -234,7 +239,9 @@ export class AuthService {
       );
     }
 
-    const user = await this.userRepository.findOne({ where: { email } });
+    const user = await this.userRepository.findOne({
+      where: [{ email }, { personalEmail: email }],
+    });
     if (!user) {
       return this.responseStrategy.notFound('사용자를 찾을 수 없습니다.');
     }
@@ -263,9 +270,11 @@ export class AuthService {
   }
 
   async findNickname(findNicknameDto: FindNicknameDto) {
-    const { email } = findNicknameDto;
+    const email = normalizeEmail(findNicknameDto.email);
 
-    const user = await this.userRepository.findOne({ where: { email } });
+    const user = await this.userRepository.findOne({
+      where: [{ email }, { personalEmail: email }],
+    });
     if (!user) {
       return this.responseStrategy.notFound(
         '등록된 이메일을 찾을 수 없습니다.',
